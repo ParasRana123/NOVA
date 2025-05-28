@@ -76,6 +76,7 @@ pip install -r requirements.txt
 
 ```bash
 mkdir Data
+cd Data
 echo. > chalog.json
 ```
 
