@@ -27,8 +27,7 @@ Forget cookie-cutter AI tools — **NOVA** is your all-in-one digital sidekick t
 
 ## Tech Stack
 
-- **Frontend**: HTML/CSS, JavaScript (or React if used)
-- **Backend**: Node.js, Express.js
+- **Frontend**: Tkinter (Python GUI Library)
 - **AI/ML Integration**: Google Gemini
 - **API Integration**: Google Calendar API
 - **Voice Recognition**: Python SpeechRecognition
@@ -38,17 +37,14 @@ Forget cookie-cutter AI tools — **NOVA** is your all-in-one digital sidekick t
 ## Project Structure
 
 ```bash
-├── static/            
-│   ├── css/        # All CSS stylings in this file
-│   ├── uploads/    # Contains user Uploaded images
-│   └── matches/    # Matched images for the user uplaoded images
-├── templates/
-│   └── index.html  # Contains all the frontend HTML code
-├── main.py         # Flask backend code
-├── app.py          # Streamlit backend code
-├── feature_extractor1.ipynb   # Useful for making filenames.pkl
-├── feature_extractor.ipynb    # Useful for making embedding.pkl
-├── requirements.txt           # Contains all the requirements
+├── test.py             # Main file combining all the code
+├── Data
+│   └── chalog.json     # Contains all the previous Chatlog
+├── image.py            # Image analysis AI-code
+├── jarvis.py           # Contains all multi-media tasks
+├── todo.py             # Contains all the calender code
+├── location.py         # Utility file for calender events
+├── requirements.txt    # Contains all the requirements
 └── README.md
 ```
 
