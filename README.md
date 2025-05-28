@@ -50,19 +50,19 @@ Forget cookie-cutter AI tools — **NOVA** is your all-in-one digital sidekick t
 
 ## Installation
 
-> **Note**: Python Version greater than 3.7 needed.
+> **Note**: Python Version greater than 3.8 needed.
 
 1. **Clone the Repository**
 
 ```bash
 git clone [repository-url]
-cd face
+cd NOVA
 ```
 
 2. **Create and activate python virtual environment**
 
 ```bash
-conda create -p venv python==3.8.0 -y
+conda create -p venv python==3.12.0 -y
 activate venv/
 ```
 
@@ -72,42 +72,18 @@ activate venv/
 pip install -r requirements.txt
 ```
 
-4. **Install the Jupyter Notebook**
+4. **Make an empty `Data` folder in root directory for Chatlogs and then create a file `chatlog.json` inside it**
 
 ```bash
-pip install notebook
+mkdir Data
+echo. > chalog.json
 ```
 
-5. **Run the `feature_extractor1.ipynb` to make `filenames.pkl`**
+4. **Start the Python application**
 
 ```bash
-jupyter nbconvert --to notebook --feature.extractor1.ipynb --inplace
+python test.py
 ```
-
-6. **Then run the `feature_extractor.ipynb` to make `embedding.pkl`**
-
-```bash
-jupyter nbconvert --to notebook --feature.extractor.ipynb --inplace
-```
-
-7. **Make the `uploads` and  `matches` inside `static` folder**
-
-```bash
-cd static
-mkdir uploads
-mkdir matches
-```
-
-8. **Start the flask application**
-
-```bash
-python main.py
-```
-
-   **You can also use the streamlit server (Optional)**
-   ```bash
-   streamlit run app.py
-   ```
 
 ## Contributing
 
