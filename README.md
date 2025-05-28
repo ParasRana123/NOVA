@@ -79,7 +79,7 @@ mkdir Data
 echo. > chalog.json
 ```
 
-4. **Start the Python application**
+5. **Start the Python application**
 
 ```bash
 python test.py
