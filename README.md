@@ -1,4 +1,4 @@
-🔥 Meet NOVA: The Next-Gen Operational Virtual Assistant That’s Built Different
+# AI-Powered Facial Recognition Match System
 
 Forget boring, cookie-cutter AI assistants. NOVA is your all-in-one digital sidekick that takes control, handles your hustle, and gets things done on your terms.
 
