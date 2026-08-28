@@ -8,23 +8,47 @@ import ChatHistoryPanel from './components/ChatHistoryPanel';
 import VisionAnalyzer from './components/VisionAnalyzer';
 import { fetchHealth, fetchWeather, fetchChatHistory, sendChatMessage, speakText } from './services/api';
 
-// Function to automatically redirect to target URL or native app scheme on both desktop and mobile
+// Function to automatically launch native apps or navigate to direct official URLs
 function autoRedirectOrLaunch(action) {
   if (!action) return;
-  const target = action.protocol || action.url;
-  if (!target) return;
+  const { protocol, url, app } = action;
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
 
-  console.log(`[NOVA Client] Automatically redirecting to: ${target}`);
+  console.log(`[NOVA Client] Launching ${app || 'action'} (protocol: ${protocol}, url: ${url}, isMobile: ${isMobile})`);
 
-  // Short 450ms delay to allow voice synthesis to start speaking the confirmation
   setTimeout(() => {
-    try {
-      // Direct location assign works on both desktop & mobile without being blocked by popup blockers!
-      window.location.href = target;
-    } catch (err) {
-      console.warn('Redirect notice:', err);
+    if (isMobile) {
+      // On mobile devices, target the native protocol first (opens native app) or direct URL
+      const mobileTarget = protocol || url;
+      if (mobileTarget) {
+        window.location.href = mobileTarget;
+      }
+    } else {
+      // On desktop devices
+      if (protocol) {
+        // Trigger OS protocol handler via invisible iframe so desktop software opens
+        try {
+          const iframe = document.createElement('iframe');
+          iframe.style.position = 'fixed';
+          iframe.style.top = '-9999px';
+          iframe.style.left = '-9999px';
+          iframe.style.width = '1px';
+          iframe.style.height = '1px';
+          iframe.style.border = 'none';
+          iframe.src = protocol;
+          document.body.appendChild(iframe);
+          setTimeout(() => {
+            try { document.body.removeChild(iframe); } catch (_) {}
+          }, 3000);
+        } catch (_) {}
+      }
+
+      // Automatically navigate to official web URL if no desktop protocol or alongside web services
+      if (url) {
+        window.location.href = url;
+      }
     }
-  }, 450);
+  }, 400);
 }
 
 function App() {
@@ -104,7 +128,7 @@ function App() {
         }
       }
 
-      // Automatically redirect to YouTube, Google, WhatsApp, Spotify, etc.
+      // Automatically launch native app or direct official web destination
       if (result.action) {
         autoRedirectOrLaunch(result.action);
       }

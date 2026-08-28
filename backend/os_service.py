@@ -23,6 +23,8 @@ except ImportError:
 # Known Windows app protocol schemes and executable aliases (for local desktop execution)
 WINDOWS_APP_PROTOCOLS = {
     "whatsapp": ["start whatsapp:", "start whatsapp", "https://web.whatsapp.com"],
+    "paytm": ["https://paytm.com"],
+    "linkedin": ["https://www.linkedin.com"],
     "calculator": ["calc.exe", "start calc:"],
     "calc": ["calc.exe", "start calc:"],
     "notepad": ["notepad.exe"],
@@ -30,7 +32,7 @@ WINDOWS_APP_PROTOCOLS = {
     "chrome": ["start chrome", "chrome.exe"],
     "google chrome": ["start chrome", "chrome.exe"],
     "edge": ["start msedge", "msedge.exe"],
-    "spotify": ["start spotify:", "spotify.exe"],
+    "spotify": ["start spotify:", "spotify.exe", "https://open.spotify.com"],
     "camera": ["start microsoft.windows.camera:"],
     "explorer": ["start explorer"],
     "file explorer": ["start explorer"],
@@ -39,23 +41,40 @@ WINDOWS_APP_PROTOCOLS = {
     "command prompt": ["cmd.exe"],
     "terminal": ["powershell.exe", "wt.exe", "cmd.exe"],
     "powershell": ["powershell.exe"],
-    "vs code": ["code", "start code"],
-    "vscode": ["code", "start code"],
+    "vs code": ["code", "start code", "https://vscode.dev"],
+    "vscode": ["code", "start code", "https://vscode.dev"],
     "word": ["start winword"],
     "excel": ["start excel"],
     "powerpoint": ["start powerpnt"],
     "paint": ["mspaint.exe"],
     "task manager": ["taskmgr.exe"],
+    "youtube": ["https://www.youtube.com"],
+    "instagram": ["https://www.instagram.com"],
+    "twitter": ["https://x.com"],
+    "x": ["https://x.com"],
+    "facebook": ["https://www.facebook.com"],
+    "github": ["https://github.com"],
+    "discord": ["start discord:", "https://discord.com/app"],
+    "telegram": ["start tg:", "https://web.telegram.org"],
+    "slack": ["start slack:", "https://slack.com"],
+    "zoom": ["start zoommtg:", "https://zoom.us"],
 }
 
 # Native OS URI schemes that open the installed desktop / mobile application directly
 APP_NATIVE_PROTOCOLS = {
     "whatsapp": "whatsapp://",
+    "paytm": "paytmmp://",
+    "linkedin": "linkedin://",
     "spotify": "spotify://",
+    "youtube": "vnd.youtube://",
+    "instagram": "instagram://",
+    "twitter": "twitter://",
+    "x": "x://",
+    "facebook": "fb://",
+    "telegram": "tg://",
+    "discord": "discord://",
     "vscode": "vscode://",
     "vs code": "vscode://",
-    "discord": "discord://",
-    "telegram": "tg://",
     "calculator": "calc:",
     "calc": "calc:",
     "settings": "ms-settings:",
@@ -63,72 +82,137 @@ APP_NATIVE_PROTOCOLS = {
     "calendar": "outlookcal:",
     "mail": "mailto:",
     "gmail": "mailto:",
-    "maps": "bingmaps:?",
+    "maps": "googlemaps://",
     "photos": "ms-photos:",
     "clock": "ms-clock:",
     "alarms": "ms-clock:",
     "store": "ms-windows-store:",
     "zoom": "zoommtg://",
     "slack": "slack://",
+    "teams": "msteams://",
+    "reddit": "reddit://",
+    "amazon": "amazon://",
+    "flipkart": "flipkart://",
+    "netflix": "netflix://",
+    "prime video": "primevideo://",
+    "zomato": "zomato://",
+    "swiggy": "swiggy://",
+    "uber": "uber://",
+    "ola": "ola://",
+    "phonepe": "phonepe://",
+    "gpay": "gpay://",
+    "google pay": "gpay://",
+    "figma": "figma://",
+    "pinterest": "pinterest://",
+    "snapchat": "snapchat://",
+    "twitch": "twitch://",
 }
 
-# Web URL fallbacks
+# Direct official web URLs for all applications and platforms (NEVER falls back to search)
 APP_WEB_URLS = {
     "whatsapp": "https://web.whatsapp.com",
+    "paytm": "https://paytm.com",
+    "linkedin": "https://www.linkedin.com",
     "spotify": "https://open.spotify.com",
     "youtube": "https://www.youtube.com",
     "google": "https://www.google.com",
     "chrome": "https://www.google.com",
+    "google chrome": "https://www.google.com",
     "edge": "https://www.bing.com",
-    "calculator": "https://www.google.com/search?q=calculator",
-    "calc": "https://www.google.com/search?q=calculator",
-    "notepad": "https://editpad.org",
-    "gmail": "https://mail.google.com",
-    "mail": "https://mail.google.com",
-    "github": "https://github.com",
-    "vs code": "https://vscode.dev",
-    "vscode": "https://vscode.dev",
-    "discord": "https://discord.com/app",
-    "telegram": "https://web.telegram.org",
+    "instagram": "https://www.instagram.com",
     "twitter": "https://x.com",
     "x": "https://x.com",
-    "instagram": "https://www.instagram.com",
+    "facebook": "https://www.facebook.com",
+    "telegram": "https://web.telegram.org",
+    "discord": "https://discord.com/app",
     "reddit": "https://www.reddit.com",
     "amazon": "https://www.amazon.com",
+    "flipkart": "https://www.flipkart.com",
     "netflix": "https://www.netflix.com",
+    "prime video": "https://www.primevideo.com",
+    "hotstar": "https://www.hotstar.com",
+    "disney": "https://www.hotstar.com",
+    "gmail": "https://mail.google.com",
+    "mail": "https://mail.google.com",
+    "email": "https://mail.google.com",
+    "github": "https://github.com",
+    "gitlab": "https://gitlab.com",
+    "vs code": "https://vscode.dev",
+    "vscode": "https://vscode.dev",
+    "calculator": "https://www.calculator.net",
+    "calc": "https://www.calculator.net",
+    "notepad": "https://editpad.org",
     "chatgpt": "https://chat.openai.com",
     "gemini": "https://gemini.google.com",
+    "claude": "https://claude.ai",
     "notion": "https://www.notion.so",
+    "canva": "https://www.canva.com",
+    "figma": "https://www.figma.com",
     "calendar": "https://calendar.google.com",
     "maps": "https://maps.google.com",
+    "google maps": "https://maps.google.com",
     "drive": "https://drive.google.com",
-    "settings": "ms-settings:"
+    "photos": "https://photos.google.com",
+    "meet": "https://meet.google.com",
+    "settings": "ms-settings:",
+    "slack": "https://slack.com",
+    "zoom": "https://zoom.us",
+    "teams": "https://teams.microsoft.com",
+    "zomato": "https://www.zomato.com",
+    "swiggy": "https://www.swiggy.com",
+    "uber": "https://www.uber.com",
+    "ola": "https://www.olacabs.com",
+    "phonepe": "https://www.phonepe.com",
+    "gpay": "https://pay.google.com",
+    "google pay": "https://pay.google.com",
+    "pinterest": "https://www.pinterest.com",
+    "snapchat": "https://web.snapchat.com",
+    "twitch": "https://www.twitch.tv",
+    "zerodha": "https://kite.zerodha.com",
+    "kite": "https://kite.zerodha.com",
+    "groww": "https://groww.in",
+    "upstox": "https://upstox.com",
 }
 
 def get_app_action_payload(app_name: str) -> Dict[str, Any]:
-    """Return protocol URI for native app opening and fallback web URL."""
+    """Return protocol URI for native app opening and direct official web URL."""
     clean = app_name.lower().strip().rstrip(".,!?")
+    # Remove common filler words
+    clean = re.sub(r'^(?:the\s+|app\s+)', '', clean).strip()
+    clean = re.sub(r'\s+app$', '', clean).strip()
+
     protocol = None
     web_url = None
 
-    for k, v in APP_NATIVE_PROTOCOLS.items():
-        if k == clean or k in clean or clean in k:
-            protocol = v
-            break
+    # 1. Exact or partial match for native protocols
+    if clean in APP_NATIVE_PROTOCOLS:
+        protocol = APP_NATIVE_PROTOCOLS[clean]
+    else:
+        for k, v in APP_NATIVE_PROTOCOLS.items():
+            if k in clean or clean in k:
+                protocol = v
+                break
 
-    for k, v in APP_WEB_URLS.items():
-        if k == clean or k in clean or clean in k:
-            web_url = v
-            break
+    # 2. Exact or partial match for official web URLs
+    if clean in APP_WEB_URLS:
+        web_url = APP_WEB_URLS[clean]
+    else:
+        for k, v in APP_WEB_URLS.items():
+            if k in clean or clean in k:
+                web_url = v
+                break
 
+    # 3. If still unknown, construct official web URL directly instead of a Google search!
     if not web_url:
-        web_url = f"https://www.google.com/search?q={clean}"
+        domain_name = re.sub(r'[^a-zA-Z0-9]', '', clean)
+        web_url = f"https://www.{domain_name}.com"
 
     return {
         "type": "open_app",
         "app": clean,
         "protocol": protocol,
-        "url": web_url
+        "url": web_url,
+        "label": f"Open {clean.title()}"
     }
 
 def mute():
@@ -338,7 +422,7 @@ def get_supported_commands_guide() -> str:
     return """✨ **NOVA Supported Commands Guide**
 
 🎛️ **App & OS Control:**
-• `Open <app>` (e.g. *Open WhatsApp*, *Open Spotify*, *Open Calculator*, *Open Chrome*, *Open VS Code*, *Open Settings*)
+• `Open <app>` (e.g. *Open WhatsApp*, *Open Paytm*, *Open LinkedIn*, *Open Spotify*, *Open YouTube*, *Open VS Code*, *Open Calculator*, *Open Instagram*, *Open Settings*)
 • `Close <app>` (e.g. *Close WhatsApp*, *Close Chrome*, *Close Notepad*)
 • `Close window` *(Alt+F4)*
 • `Take a screenshot` / `Screenshot`
