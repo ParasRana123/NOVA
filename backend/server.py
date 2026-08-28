@@ -32,11 +32,21 @@ from backend.os_service import (
 )
 
 app = Flask(__name__)
-CORS(app)
+# Enable Cross-Origin Resource Sharing for all origins (local dev & Vercel production)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 UPLOAD_FOLDER = BASE_DIR / "Data" / "uploads"
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = str(UPLOAD_FOLDER)
+
+@app.route('/', methods=['GET'])
+def root_status():
+    return jsonify({
+        "message": "NOVA Virtual Assistant API is running.",
+        "assistant": "NOVA",
+        "version": "2.0.0",
+        "status": "online"
+    })
 
 @app.route('/api/health', methods=['GET'])
 def health():
@@ -246,5 +256,6 @@ def speak_endpoint():
     return jsonify({"error": "No text provided"}), 400
 
 if __name__ == '__main__':
-    print("Starting NOVA Backend API Server on http://127.0.0.1:5000...")
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    port = int(os.environ.get("PORT", 5000))
+    print(f"Starting NOVA Backend API Server on port {port}...")
+    app.run(host='0.0.0.0', port=port, debug=False)

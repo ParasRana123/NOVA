@@ -1,4 +1,7 @@
-const API_BASE_URL = 'http://127.0.0.1:5000/api';
+// Use environment variable VITE_API_URL if defined (e.g. for Render deployment), otherwise fallback to local
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+const CLEAN_BACKEND_URL = BACKEND_URL.replace(/\/+$/, '');
+const API_BASE_URL = `${CLEAN_BACKEND_URL}/api`;
 
 export async function fetchHealth() {
   try {
@@ -46,7 +49,7 @@ export async function sendChatMessage(query, speak = true) {
     console.error('Error sending chat message:', error);
     return {
       query,
-      response: `Failed to connect to NOVA backend: ${error.message}. Make sure server.py is running.`,
+      response: `Failed to connect to NOVA backend: ${error.message}. Please verify the backend service is running.`,
       status: 'error'
     };
   }

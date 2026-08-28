@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: nova-backend
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: gunicorn --chdir backend server:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENWEATHER_API_KEY
+        sync: false
+      - key: USER_NAME
+        value: Paras
+      - key: ASSISTANT_NAME
+        value: NOVA
+      - key: PYTHON_VERSION
+        value: 3.11.9
