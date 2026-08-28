@@ -6,19 +6,21 @@ import os
 import sys
 import random
 import tkinter as tk
+from backend.config import OPENWEATHER_API_KEY
 
 def main():
     def setup_jarvis():
         jarvis = pyttsx3.init()
         voices = jarvis.getProperty("voices")
-        jarvis.setProperty("voice", voices[0].id)  # Select a voice
+        if voices:
+            jarvis.setProperty("voice", voices[0].id)
         jarvis.setProperty("rate", 200)
         return jarvis
 
     def wake_word_listener():
         recognizer = sr.Recognizer()
         jarvis = setup_jarvis()
-        recognizer.dynamic_energy_threshold = True  # Adjust energy threshold dynamically
+        recognizer.dynamic_energy_threshold = True
 
         jarvis.say("Hello sir. Say 'Hey JARVIS' when you need me.")
         jarvis.runAndWait()
@@ -85,7 +87,7 @@ def main():
                         sys.exit()
                     elif "youtube" in command:
                         query = command.replace("youtube", "").strip()
-                        if not query:  # If no query provided
+                        if not query:
                             jarvis.say("What should I search for?")
                             jarvis.runAndWait() 
                             audio = recognizer.listen(source, timeout=10, phrase_time_limit=10)
@@ -94,7 +96,7 @@ def main():
                         jarvis.say(response)
                         jarvis.runAndWait()
                     elif "whatsapp" in command:
-                        os.startfile(r"C:\Users\Aditya Kurani\Desktop\WhatsApp - Shortcut.lnk")
+                        os.system("start whatsapp:")
                     else:
                         jarvis.say("Sorry, I didn't understand that command.")
                         jarvis.runAndWait()
@@ -116,9 +118,8 @@ def main():
                 return
 
     def get_weather(city_name):
-        api_key = "fc3b1eb09d67c9ebd2d39e4fc7d2bb41"
         base_url = "http://api.openweathermap.org/data/2.5/weather"
-        params = {"q": city_name, "appid": api_key, "units": "metric"}
+        params = {"q": city_name, "appid": OPENWEATHER_API_KEY, "units": "metric"}
         response = requests.get(base_url, params=params)
         if response.status_code == 200:
             data = response.json()
@@ -145,9 +146,14 @@ def main():
         sm = selectedmusic.split(".")[0]
         jarvis.say(f"Playing {sm}")
         jarvis.runAndWait()
-        musicpath = fr"C:\Users\Aditya Kurani\Desktop\music\{selectedmusic}"
-        os.startfile(musicpath)
+        musicpath = os.path.expanduser(f"~/Desktop/music/{selectedmusic}")
+        if os.path.exists(musicpath):
+            os.startfile(musicpath)
+        else:
+            search_url = f"https://www.youtube.com/results?search_query={sm}"
+            webbrowser.open(search_url)
 
     wake_word_listener()
 
-main()
+if __name__ == "__main__":
+    main()

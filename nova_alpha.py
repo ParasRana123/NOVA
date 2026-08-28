@@ -1,16 +1,19 @@
 from json import load, dump
 import datetime
 import requests
-from groq import Groq
-import  pyttsx3 
+import pyttsx3
 import speech_recognition as sr
-# User and Assistant details
-Username = "Aditya"
-Assistantname = "Jarvis"
-GroqAPIKey = "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"
+from backend.config import GROQ_API_KEY, OPENWEATHER_API_KEY, USER_NAME, ASSISTANT_NAME
 
-# Initializing the Groq client
-client = Groq(api_key=GroqAPIKey)
+try:
+    from groq import Groq
+    client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+except ImportError:
+    client = None
+
+# User and Assistant details
+Username = USER_NAME
+Assistantname = ASSISTANT_NAME
 
 # System instructions
 System = f"""Hello, I am {Username}. You are a very accurate and advanced AI chatbot named {Assistantname}, which has real-time up-to-date information from the internet.
@@ -27,9 +30,8 @@ except FileNotFoundError:
 
 # Function to get current weather information
 def get_weather(city_name):
-    api_key = "fc3b1eb09d67c9ebd2d39e4fc7d2bb41"
     base_url = "http://api.openweathermap.org/data/2.5/weather"
-    params = {"q": city_name, "appid": api_key, "units": "metric"}
+    params = {"q": city_name, "appid": OPENWEATHER_API_KEY, "units": "metric"}
     response = requests.get(base_url, params=params)
     if response.status_code == 200:
         data = response.json()
@@ -55,28 +57,26 @@ def Information():
 # Function to clean up the chatbot's response
 def AnswerModifier(answer):
     lines = answer.split('\n')
-    non_empty_lines = [line.strip() for line  in lines if line.strip()]
+    non_empty_lines = [line.strip() for line in lines if line.strip()]
     return '\n'.join(non_empty_lines)
 
 # Main function to handle real-time responses
 def RealtimeSearchEngine(prompt):
     global messages
+    if not client:
+        return "Groq client is not configured."
 
-    # Load chat history
     with open(r"Data\ChatLog.json", "r") as f:
         messages = load(f)
     messages.append({"role": "user", "content": prompt})
 
-    # Handle weather-related prompts
     if "weather" in prompt.lower():
         city_name = prompt.split("weather in")[-1].strip()
         weather_info = get_weather(city_name)
         system_context = {"role": "system", "content": weather_info}
     else:
-        # Use date and time information for general prompts
         system_context = {"role": "system", "content": Information()}
 
-    # Create chat completion
     completion = client.chat.completions.create(
         model="llama3-70b-8192",
         messages=[{"role": "system", "content": System}, system_context] + messages,
@@ -86,7 +86,6 @@ def RealtimeSearchEngine(prompt):
         stream=True
     )
 
-    # Generate the response
     answer = ""
     for chunk in completion:
         if chunk.choices[0].delta.content:
@@ -95,38 +94,34 @@ def RealtimeSearchEngine(prompt):
     answer = AnswerModifier(answer)
     messages.append({"role": "assistant", "content": answer})
 
-    # Save updated chat history
     with open(r"Data\ChatLog.json", "w") as f:
         dump(messages, f, indent=4)
 
     return answer
+
 def setup_nova():
-    jarvis=pyttsx3.init()
-    voices=jarvis.getProperty("voices")
-    jarvis.setProperty('voice',voices[1].id)
-    jarvis.setProperty('rate',240)
+    jarvis = pyttsx3.init()
+    voices = jarvis.getProperty("voices")
+    if len(voices) > 1:
+        jarvis.setProperty('voice', voices[1].id)
+    jarvis.setProperty('rate', 240)
     return jarvis
-def speak(jarvis,text):
+
+def speak(jarvis, text):
     print(text)
     jarvis.say(text)
     jarvis.runAndWait()
-stop=False
+
+stop = False
 def main(user_input):
     jar = setup_nova()
-    # while True:
-    # user_input = input("Enter your question: ")
-        
-        # Exit condition
     if user_input.lower() in ["exit", "quit", "bye"]:
         print("Goodbye!")
         if not stop:
             speak(jar, "Goodbye!")
-        else:jar.stop()
+        else:
+            jar.stop()
+        return "Goodbye!"
         
-        # Process input and generate response
     response = RealtimeSearchEngine(user_input)
-        
-        # Provide output
-    # speak(jar, response)
-    return (response)
-# main()
+    return response

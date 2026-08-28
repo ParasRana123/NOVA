@@ -1,38 +1,33 @@
 import requests
+from backend.config import OPENWEATHER_API_KEY
 
 # Function to get location by IP
 def get_location_by_ip():
     try:
-        response = requests.get("https://ipinfo.io/json")  # API for IP location
+        response = requests.get("https://ipinfo.io/json", timeout=5)
         data = response.json()
         
-        # Extract location details
         city = data.get('city', 'Unknown City')
         region = data.get('region', 'Unknown Region')
         country = data.get('country', 'Unknown Country')
-        loc = data.get('loc', '0,0')  # Latitude and Longitude
+        loc = data.get('loc', '0,0')
         
-        # Split latitude and longitude
-        latitude, longitude = loc.split(',')
-        
-        # Format location string
+        latitude, longitude = loc.split(',') if ',' in loc else (None, None)
         location = f"{city}, {region}, {country}"
         
-        # Return all details
         return location, latitude, longitude
     except Exception as e:
         return "Unable to fetch location", None, None
 
 # Function to get weather using latitude and longitude
-def get_weather(lat, lon, api_key):
+def get_weather(lat, lon, api_key=OPENWEATHER_API_KEY):
+    if not lat or not lon:
+        return {"Error": "Coordinates missing"}
     try:
-        # OpenWeatherMap API URL
         url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={api_key}&units=metric"
-        
-        response = requests.get(url)
+        response = requests.get(url, timeout=5)
         weather_data = response.json()
         
-        # Extract weather information
         if response.status_code == 200:
             temperature = weather_data['main']['temp']
             weather_desc = weather_data['weather'][0]['description']
@@ -48,21 +43,18 @@ def get_weather(lat, lon, api_key):
         else:
             return {"Error": weather_data.get("message", "Unable to fetch weather")}
     except Exception as e:
-        return {"Error": "An error occurred while fetching weather"}
+        return {"Error": f"An error occurred while fetching weather: {e}"}
 
-# Fetch location and weather
-API_KEY = "fc3b1eb09d67c9ebd2d39e4fc7d2bb41"  # Replace with your OpenWeatherMap API key
-location, latitude, longitude = get_location_by_ip()
-
-if latitude and longitude:
-    print(f"Location: {location}")
-    print(f"Latitude: {latitude}")
-    print(f"Longitude: {longitude}")
-    
-    # Fetch weather
-    weather_info = get_weather(latitude, longitude, API_KEY)
-    print("\nWeather Information:")
-    for key, value in weather_info.items():
-        print(f"{key}: {value}")
-else:
-    print("Unable to fetch location or weather")
+if __name__ == "__main__":
+    location, latitude, longitude = get_location_by_ip()
+    if latitude and longitude:
+        print(f"Location: {location}")
+        print(f"Latitude: {latitude}")
+        print(f"Longitude: {longitude}")
+        
+        weather_info = get_weather(latitude, longitude)
+        print("\nWeather Information:")
+        for key, value in weather_info.items():
+            print(f"{key}: {value}")
+    else:
+        print("Unable to fetch location or weather")
