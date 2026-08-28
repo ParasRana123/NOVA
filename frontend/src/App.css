@@ -880,6 +880,60 @@
   }
 }
 
+@media (max-width: 768px) {
+  .nova-app-container {
+    padding: 0.75rem;
+  }
+
+  .nova-top-nav {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .nav-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .command-bar-section {
+    padding: 0.85rem;
+  }
+
+  .cyber-input {
+    font-size: 16px !important; /* Prevents auto-zoom on iOS */
+    height: 44px;
+  }
+
+  .command-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .btn-primary {
+    flex: 1;
+    text-align: center;
+    padding: 0.75rem 1rem;
+  }
+
+  .hero-visualizer-container {
+    min-height: 240px;
+    padding: 1rem;
+  }
+
+  .siri-gif-image {
+    max-width: 220px;
+  }
+
+  .weather-clock-card {
+    min-height: auto;
+  }
+
+  .chat-history-drawer {
+    width: 100%;
+  }
+}
+
 /* Formatted Markdown Typography - Clean, Human, Editorial & Modern */
 .formatted-markdown-block {
   display: flex;

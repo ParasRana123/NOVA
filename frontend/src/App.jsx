@@ -8,61 +8,23 @@ import ChatHistoryPanel from './components/ChatHistoryPanel';
 import VisionAnalyzer from './components/VisionAnalyzer';
 import { fetchHealth, fetchWeather, fetchChatHistory, sendChatMessage, speakText } from './services/api';
 
-// Function to trigger native OS application schemes or web action URLs
-function launchNativeAppOrWeb(action) {
+// Function to automatically redirect to target URL or native app scheme on both desktop and mobile
+function autoRedirectOrLaunch(action) {
   if (!action) return;
-  const { protocol, url, app } = action;
+  const target = action.protocol || action.url;
+  if (!target) return;
 
-  if (protocol) {
-    console.log(`[NOVA Client] Launching native application protocol: ${protocol} (${app})`);
+  console.log(`[NOVA Client] Automatically redirecting to: ${target}`);
+
+  // Short 450ms delay to allow voice synthesis to start speaking the confirmation
+  setTimeout(() => {
     try {
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'fixed';
-      iframe.style.top = '-9999px';
-      iframe.style.left = '-9999px';
-      iframe.style.width = '1px';
-      iframe.style.height = '1px';
-      iframe.style.border = 'none';
-      iframe.src = protocol;
-      document.body.appendChild(iframe);
-
-      setTimeout(() => {
-        try {
-          document.body.removeChild(iframe);
-        } catch (_) {}
-      }, 3000);
-    } catch (_) {
-      try {
-        window.location.href = protocol;
-      } catch (err) {
-        console.warn('Protocol navigation notice:', err);
-      }
+      // Direct location assign works on both desktop & mobile without being blocked by popup blockers!
+      window.location.href = target;
+    } catch (err) {
+      console.warn('Redirect notice:', err);
     }
-  } else if (url) {
-    console.log(`[NOVA Client] Launching action URL: ${url}`);
-    // Strategy 1: Synthetic link click (handles popup blockers in most browsers)
-    try {
-      const link = document.createElement('a');
-      link.href = url;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      setTimeout(() => {
-        try {
-          document.body.removeChild(link);
-        } catch (_) {}
-      }, 500);
-    } catch (_) {}
-
-    // Strategy 2: window.open backup
-    try {
-      const popup = window.open(url, '_blank', 'noopener,noreferrer');
-      if (popup) popup.focus();
-    } catch (popupErr) {
-      console.warn('Popup blocked by browser:', popupErr);
-    }
-  }
+  }, 450);
 }
 
 function App() {
@@ -117,11 +79,6 @@ function App() {
       setLatestAction(result.action || null);
       setStatusText(result.status === 'success' ? 'Command completed.' : 'Response received.');
 
-      // Launch native OS desktop app or web URL (e.g. YouTube, Google, WhatsApp)
-      if (result.action) {
-        launchNativeAppOrWeb(result.action);
-      }
-
       // Browser Speech Synthesis with guarded lifecycle
       if (speechEnabled && 'speechSynthesis' in window && !result.response.includes('Error')) {
         try {
@@ -145,6 +102,11 @@ function App() {
           console.warn('Speech synthesis invocation notice:', speechErr);
           setIsSpeaking(false);
         }
+      }
+
+      // Automatically redirect to YouTube, Google, WhatsApp, Spotify, etc.
+      if (result.action) {
+        autoRedirectOrLaunch(result.action);
       }
 
       // Refresh chat log

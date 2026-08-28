@@ -22,13 +22,16 @@ export default function HeaderCommandBar({
     onSendMessageRef.current = onSendMessage;
   }, [onSendMessage]);
 
-  // Initialize Web Speech API with real-time streaming and silence auto-submit
+  // Initialize Web Speech API with mobile + desktop compatibility
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       try {
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
         const recognition = new SpeechRecognition();
-        recognition.continuous = true;
+        
+        // Mobile browsers (Chrome on Android / iOS Safari) require non-continuous mode
+        recognition.continuous = !isMobile;
         recognition.interimResults = true;
         recognition.lang = 'en-US';
 
@@ -58,7 +61,7 @@ export default function HeaderCommandBar({
             accumulatedTranscriptRef.current = combined;
           }
 
-          // Auto-submit after 1.5s of silence
+          // Auto-submit after 1.4s of silence
           if (silenceTimerRef.current) {
             clearTimeout(silenceTimerRef.current);
           }
@@ -76,12 +79,12 @@ export default function HeaderCommandBar({
               accumulatedTranscriptRef.current = '';
               onSendMessageRef.current(queryToSend);
             }
-          }, 1500);
+          }, 1400);
         };
 
         recognition.onerror = (event) => {
           if (event.error !== 'no-speech' && event.error !== 'aborted') {
-            console.warn('Speech recognition status:', event.error);
+            console.warn('Speech recognition notice:', event.error);
           }
           if (event.error === 'not-allowed') {
             alert('Microphone access was denied. Please allow microphone permissions in your browser bar.');
@@ -95,6 +98,14 @@ export default function HeaderCommandBar({
           isListeningRef.current = false;
           setIsListening(false);
           onListeningStateChange?.(false);
+
+          // On mobile, submit when speech ends if transcript exists
+          const queryToSend = accumulatedTranscriptRef.current.trim();
+          if (queryToSend) {
+            setInputVal('');
+            accumulatedTranscriptRef.current = '';
+            onSendMessageRef.current(queryToSend);
+          }
         };
 
         recognitionRef.current = recognition;
@@ -130,7 +141,7 @@ export default function HeaderCommandBar({
 
   const handleVoiceToggle = () => {
     if (!recognitionRef.current) {
-      alert('Speech Recognition is not supported on this browser. Please use Chrome or Edge.');
+      alert('Speech Recognition is not supported on this browser. Please use Chrome, Edge, or Safari.');
       return;
     }
 
@@ -152,7 +163,7 @@ export default function HeaderCommandBar({
         recognitionRef.current.start();
       } catch (err) {
         if (err.name !== 'InvalidStateError') {
-          console.warn('Speech recognition notice:', err);
+          console.warn('Speech recognition start notice:', err);
         }
       }
     }
@@ -181,8 +192,8 @@ export default function HeaderCommandBar({
             onChange={(e) => setInputVal(e.target.value)}
             placeholder={
               isListening
-                ? 'Listening... Speak your command now'
-                : "Type or click 🎤 (e.g. 'open whatsapp', 'play interstellar on youtube', 'remind me at 5pm')..."
+                ? 'Listening... Speak your command'
+                : "Type or click 🎤 (e.g. 'play hall of fame on youtube', 'open whatsapp')..."
             }
             disabled={isProcessing}
             autoFocus
@@ -219,7 +230,7 @@ export default function HeaderCommandBar({
             type="button"
             className={`btn-copy ${copied ? 'copied' : ''}`}
             onClick={handleCopy}
-            title="Copy latest NOVA response to clipboard"
+            title="Copy latest response"
           >
             {copied ? '✓ Copied' : 'Copy'}
           </button>
