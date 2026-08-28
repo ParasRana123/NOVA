@@ -2,10 +2,6 @@
 
 Forget cookie-cutter AI tools — **NOVA** is your all-in-one digital sidekick that takes control, handles your hustle, and gets things done *your way*.
 
----
-
-### 🌐 Live Links
-
 - **Live Website**: [https://nova-inky-iota.vercel.app/](https://nova-inky-iota.vercel.app/)
 - **Live Demo Video**: [Watch Demo](https://res.cloudinary.com/d3ukbssg/video/upload/v1787560321/nova_record.mp4)
 
