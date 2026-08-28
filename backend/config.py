@@ -49,12 +49,13 @@ GENERATED_CONTENT_PATH = BASE_DIR / "generated_content.txt"
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "")
 
-# AI Models & Assistant Settings
-USER_NAME = os.getenv("USER_NAME", "Aditya")
+# AI Models & Assistant Settings - Ultra Fast Flash Models
+USER_NAME = os.getenv("USER_NAME", "Paras")
 ASSISTANT_NAME = os.getenv("ASSISTANT_NAME", "NOVA")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.7-flash")
-GEMINI_CHAT_MODEL = os.getenv("GEMINI_CHAT_MODEL", "gemini-3.7-flash")
-GEMINI_CONTENT_MODEL = os.getenv("GEMINI_CONTENT_MODEL", "gemini-3.7-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
+GEMINI_CHAT_MODEL = os.getenv("GEMINI_CHAT_MODEL", "gemini-3.1-flash-lite-preview")
+GEMINI_CONTENT_MODEL = os.getenv("GEMINI_CONTENT_MODEL", "gemini-3.5-flash")
+GEMINI_VISION_MODEL = os.getenv("GEMINI_VISION_MODEL", "gemini-3.1-flash-image-preview")
 
 # Calendar Scopes
 CALENDAR_SCOPES = ['https://www.googleapis.com/auth/calendar']
