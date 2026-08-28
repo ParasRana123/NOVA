@@ -56,94 +56,94 @@ def get_response(user_text: str):
 
     try:
         submit_button.config(text="Processing...", state="disabled")
-        command = user_text.strip().lower()
-        found = False
+        cmd = user_text.strip().lower()
+        response = ""
 
-        # YouTube playback
-        if "play " in command and "on youtube" in command:
-            found = True
-            query = command.replace("play ", "").replace(" on youtube", "").strip()
+        # 1. YouTube Playback intent
+        yt_match = re.search(r'^(?:play\s+(.+?)\s+on\s+youtube|play\s+(?:song|music|video)\s+(.+))$', cmd)
+        if yt_match:
+            query = (yt_match.group(1) or yt_match.group(2)).strip()
             search_youtube(query, play_first=True)
-            speak(f"Playing {query} on YouTube.")
+            response = f"Playing '{query}' on YouTube."
+            speak(response)
 
-        # Keyboard & Media Control
-        keyboard_triggers = [
-            "increase", "decrease", "mute", "unmute", "play", "pause",
-            "next track", "previous track", "type", "find", "screenshot"
-        ]
-        for trigger in keyboard_triggers:
-            if trigger in command and not found:
-                found = handle_keyboard_action(trigger)
-                break
-
-        # Reminders
-        if not found and ("reminder" in command or "remind" in command):
-            found = True
-            reminder(command)
-
-        # App Closing
-        elif not found and "close" in command and "close window" not in command:
-            found = True
-            app_name = command.replace("close", "").strip()
-            close_application(app_name)
-            speak(f"Closing {app_name}")
-
-        # Web Searches
-        elif not found and "youtube" in command:
-            found = True
-            query = command.replace("youtube", "").strip()
+        # 2. Explicit Web Search intents
+        elif re.search(r'^(?:search\s+(?:on\s+)?youtube\s+(?:for\s+)?|youtube\s+search\s+(?:for\s+)?)(.+)$', cmd):
+            m = re.search(r'^(?:search\s+(?:on\s+)?youtube\s+(?:for\s+)?|youtube\s+search\s+(?:for\s+)?)(.+)$', cmd)
+            query = m.group(1).strip()
             search_youtube(query)
-            speak(f"Searched YouTube for {query}")
+            response = f"Searched YouTube for: {query}"
+            speak(response)
 
-        elif not found and "google" in command:
-            found = True
-            query = command.replace("google", "").strip()
+        elif re.search(r'^(?:search\s+(?:on\s+)?google\s+(?:for\s+)?|google\s+search\s+(?:for\s+)?)(.+)$', cmd):
+            m = re.search(r'^(?:search\s+(?:on\s+)?google\s+(?:for\s+)?|google\s+search\s+(?:for\s+)?)(.+)$', cmd)
+            query = m.group(1).strip()
             search_google(query)
-            speak(f"Searched Google for {query}")
+            response = f"Searched Google for: {query}"
+            speak(response)
 
-        elif not found and "amazon" in command:
-            found = True
-            query = command.split("amazon")[-1].replace("for", "").strip()
+        elif re.search(r'^(?:search\s+(?:on\s+)?amazon\s+(?:for\s+)?|amazon\s+search\s+(?:for\s+)?)(.+)$', cmd):
+            m = re.search(r'^(?:search\s+(?:on\s+)?amazon\s+(?:for\s+)?|amazon\s+search\s+(?:for\s+)?)(.+)$', cmd)
+            query = m.group(1).strip()
             search_amazon(query)
-            speak(f"Searching Amazon for {query}")
+            response = f"Searched Amazon for: {query}"
+            speak(response)
 
-        # AI Content Generation
-        elif not found and ("email" in command or "content" in command):
-            found = True
-            query = command.replace("email", "").replace("content", "").strip()
-            if query:
-                output_label.config(text=f"Generating content for: {query}")
-                generate_content(query, auto_open=True)
-                speak("Content generated and opened in Notepad.")
-            else:
-                output_label.config(text="Please provide a topic.")
+        # 3. Content Drafting intent
+        elif re.search(r'^(?:draft|write|compose|generate)\s+(?:an?\s+)?(?:email|letter|application|document|content)\s+(?:about|for|on)\s+(.+)$', cmd):
+            m = re.search(r'^(?:draft|write|compose|generate)\s+(?:an?\s+)?(?:email|letter|application|document|content)\s+(?:about|for|on)\s+(.+)$', cmd)
+            topic = m.group(1).strip()
+            output_label.config(text=f"Generating content for: {topic}")
+            response = generate_content(topic, auto_open=True)
+            speak("Content generated and opened in Notepad.")
 
-        # To-Do & Calendar
-        elif not found and any(k in command for k in ["list", "calendar", "tasks", "remove task", "add in my list"]):
-            found = True
-            todomain(command)
+        # 4. Reminders
+        elif re.search(r'^(?:remind\s+me|set\s+(?:a\s+)?reminder)\b', cmd):
+            success, msg = reminder(user_text)
+            if success:
+                response = msg
 
-        # App Opening
-        elif not found and "open" in command:
-            found = True
-            app_name = command.replace("open", "").strip()
+        # 5. To-Do & Calendar commands
+        if not response:
+            todo_res = handle_todo_command(cmd)
+            if todo_res:
+                response = todo_res
+
+        # 6. Application management
+        if not response and re.search(r'^(?:open|launch)\s+([a-zA-Z0-9\s]+)$', cmd):
+            m = re.search(r'^(?:open|launch)\s+([a-zA-Z0-9\s]+)$', cmd)
+            app_name = m.group(1).strip()
             open_application(app_name)
-            speak(f"Opening {app_name}")
+            response = f"Opening {app_name}"
+            speak(response)
 
-        # Exit Command
-        elif not found and any(k in command for k in ["bye", "sleep", "exit", "quit"]):
-            found = True
+        elif not response and re.search(r'^(?:close|quit|kill)\s+([a-zA-Z0-9\s]+)$', cmd):
+            m = re.search(r'^(?:close|quit|kill)\s+([a-zA-Z0-9\s]+)$', cmd)
+            app_name = m.group(1).strip()
+            close_application(app_name)
+            response = f"Closed application {app_name}"
+            speak(response)
+
+        # 7. Exit Command
+        elif not response and re.search(r'^(?:goodbye|bye|sleep|exit|quit)$', cmd):
             speak("Goodbye!")
             root.destroy()
             sys.exit()
 
-        # Fallback to General AI LLM
-        if not found:
+        # 8. OS Media / Keyboard macros
+        elif not response and re.search(r'^(?:(?:increase|decrease|mute|unmute)\s+volume|mute|unmute|pause|resume|next\s+track|previous\s+track|take\s+a?\s*screenshot|screenshot)$', cmd):
+            handle_keyboard_action(cmd)
+            response = f"Executed system command: {cmd}"
+
+        # 9. All other queries -> Full Google Gemini conversational answer!
+        if not response:
             output_label.config(text="NOVA: Thinking...")
             response = ai_chat(user_text)
             output_label.config(text=f"NOVA: {response}")
             if speak_enabled:
                 speak(response)
+        else:
+            output_label.config(text=f"NOVA: {response}")
 
     except Exception as e:
         output_label.config(text=f"Error: {e}")

@@ -32,7 +32,7 @@ def write_tasks_to_file(tasks: List[str], file_path: Path = TODOLIST_PATH):
 
 def extract_hour(task: str) -> Optional[Tuple[int, int]]:
     """Extract hour and minutes from natural language task description."""
-    match = re.search(r'(\d{1,2}):?(\d{2})?\s*(AM|PM)?', task, re.IGNORECASE)
+    match = re.search(r'\b(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?\b', task, re.IGNORECASE)
     if not match:
         return None
 
@@ -48,11 +48,11 @@ def extract_hour(task: str) -> Optional[Tuple[int, int]]:
 
     return hour, minutes
 
-def create_calendar_event_for_task(task: str):
+def create_calendar_event_for_task(task: str) -> Optional[str]:
     """Attempt to create a Google Calendar event for the task if a time is specified."""
     time_tuple = extract_hour(task)
     if not time_tuple:
-        return
+        return None
 
     h, m = time_tuple
     now = datetime.utcnow()
@@ -60,47 +60,61 @@ def create_calendar_event_for_task(task: str):
     
     res = default_calendar_service.create_event(summary=task, start_datetime=event_start)
     if res:
-        speak(f"'{task}' added to your Google Calendar.")
+        msg = f"'{task}' added to your Google Calendar."
+        speak(msg)
+        return msg
+    return None
 
-def add_task(text: str):
+def add_task(text: str) -> str:
     """Add a new task to to-do list and sync with calendar."""
     clean_task = text.strip()
     if not clean_task:
-        speak("Task description cannot be empty.")
-        return
+        msg = "Task description cannot be empty."
+        speak(msg)
+        return msg
 
     tasks = read_tasks_from_file()
     tasks.append(clean_task)
     write_tasks_to_file(tasks)
-    speak(f"Added '{clean_task}' to your to-do list.")
-    create_calendar_event_for_task(clean_task)
+    msg = f"Added '{clean_task}' to your to-do list."
+    speak(msg)
+    cal_msg = create_calendar_event_for_task(clean_task)
+    if cal_msg:
+        msg += f" ({cal_msg})"
+    return msg
 
-def remove_task(text: str):
+def remove_task(text: str) -> str:
     """Remove an existing task from to-do list."""
     clean_task = text.strip()
     tasks = read_tasks_from_file()
     
-    # Try exact match or substring match
     matched = [t for t in tasks if clean_task.lower() in t.lower()]
     if matched:
         for m in matched:
             tasks.remove(m)
-            speak(f"Removed '{m}' from your to-do list.")
         write_tasks_to_file(tasks)
+        msg = f"Removed '{matched[0]}' from your to-do list."
+        speak(msg)
+        return msg
     else:
-        speak(f"'{clean_task}' not found in the to-do list.")
+        msg = f"'{clean_task}' not found in the to-do list."
+        speak(msg)
+        return msg
 
-def get_tasks():
-    """Speak all tasks in the to-do list."""
+def get_tasks() -> str:
+    """Return and speak all tasks in the to-do list."""
     tasks = read_tasks_from_file()
     if tasks:
-        speak("Here is your to-do list:")
-        for task in tasks:
-            speak(task)
+        formatted = "\n".join([f"{i+1}. {t}" for i, t in enumerate(tasks)])
+        msg = f"Here is your to-do list:\n{formatted}"
+        speak(f"You have {len(tasks)} tasks in your to-do list.")
+        return msg
     else:
-        speak("Your to-do list is empty.")
+        msg = "Your to-do list is currently empty."
+        speak(msg)
+        return msg
 
-def sort_tasks():
+def sort_tasks() -> str:
     """Categorize tasks into high, medium, and low priority files."""
     tasks = read_tasks_from_file()
     high, med, low = [], [], []
@@ -109,8 +123,6 @@ def sort_tasks():
         t_low = task.lower()
         if "high" in t_low:
             high.append(task)
-        elif "med" in t_low or "medium" in t_low:
-            med.append(task)
         elif "low" in t_low:
             low.append(task)
         else:
@@ -119,20 +131,25 @@ def sort_tasks():
     write_tasks_to_file(high, HIGH_PRIORITY_PATH)
     write_tasks_to_file(med, MED_PRIORITY_PATH)
     write_tasks_to_file(low, LOW_PRIORITY_PATH)
-    speak("Tasks have been sorted into high, medium, and low priority lists.")
+    msg = f"Tasks sorted into {len(high)} high, {len(med)} medium, and {len(low)} low priority lists."
+    speak(msg)
+    return msg
 
-def search_tasks(keyword: str):
+def search_tasks(keyword: str) -> str:
     """Search tasks by keyword."""
     tasks = read_tasks_from_file()
     results = [t for t in tasks if keyword.lower() in t.lower()]
     if results:
-        speak(f"Found {len(results)} task(s) matching '{keyword}':")
-        for task in results:
-            speak(task)
+        formatted = "\n".join([f"- {t}" for t in results])
+        msg = f"Found {len(results)} task(s) matching '{keyword}':\n{formatted}"
+        speak(f"Found {len(results)} matching tasks.")
+        return msg
     else:
-        speak(f"No tasks matching '{keyword}' were found.")
+        msg = f"No tasks matching '{keyword}' were found."
+        speak(msg)
+        return msg
 
-def get_tasks_by_priority(priority: str):
+def get_tasks_by_priority(priority: str) -> str:
     """Fetch tasks from priority files."""
     p = priority.lower().strip()
     file_map = {
@@ -144,48 +161,73 @@ def get_tasks_by_priority(priority: str):
     target_file = file_map.get(p, MED_PRIORITY_PATH)
     tasks = read_tasks_from_file(target_file)
     if tasks:
-        speak(f"Here are your {priority} priority tasks:")
-        for task in tasks:
-            speak(task)
+        formatted = "\n".join([f"{i+1}. {t}" for i, t in enumerate(tasks)])
+        msg = f"Here are your {priority} priority tasks:\n{formatted}"
+        speak(f"Here are your {priority} priority tasks.")
+        return msg
     else:
-        speak(f"No {priority} priority tasks found.")
+        msg = f"No {priority} priority tasks found."
+        speak(msg)
+        return msg
 
-def get_upcoming_calendar_events():
+def get_upcoming_calendar_events() -> str:
     """Fetch and speak upcoming events from Google Calendar."""
     events = default_calendar_service.get_upcoming_events()
     if not events:
-        speak("No upcoming calendar events found.")
-        return
+        msg = "No upcoming calendar events found."
+        speak(msg)
+        return msg
 
-    speak("Here are your upcoming events:")
+    formatted_events = []
     for event in events:
         start = event.get('start', {}).get('dateTime', event.get('start', {}).get('date', ''))
         summary = event.get('summary', 'Untitled Event')
-        speak(f"{summary} at {start}")
+        formatted_events.append(f"• {summary} at {start}")
 
-def handle_todo_command(command: str):
-    """Main routing function for to-do & calendar operations."""
-    cmd = command.lower()
-    if "add" in cmd:
-        task = command.split("add", 1)[1].replace("in my list", "").replace("to my list", "").strip()
-        add_task(task)
-    elif "remove" in cmd:
-        task = command.split("remove", 1)[1].replace("from my list", "").strip()
-        remove_task(task)
-    elif "get" in cmd or "show" in cmd or "list" in cmd:
-        get_tasks()
-    elif "sort" in cmd:
-        sort_tasks()
-    elif "search" in cmd:
-        keyword = command.split("search", 1)[1].strip()
-        search_tasks(keyword)
-    elif "priority" in cmd:
-        priority = command.split("priority", 1)[1].strip()
-        get_tasks_by_priority(priority)
-    elif "calendar" in cmd or "events" in cmd:
-        get_upcoming_calendar_events()
-    else:
-        speak("Invalid task command. Please try again.")
+    msg = "Upcoming Google Calendar Events:\n" + "\n".join(formatted_events)
+    speak(f"You have {len(events)} upcoming calendar events.")
+    return msg
 
-# Alias for backwards compatibility
+def handle_todo_command(command: str) -> Optional[str]:
+    """Strict matching function for to-do & calendar operations."""
+    cmd = command.lower().strip()
+
+    # Add task
+    add_match = re.search(r'^(?:add\s+to\s+(?:my\s+)?(?:todo|to-do|tasks?)(?:\s+list)?|add\s+(?:task|in\s+my\s+list)\s+)(.+)$', cmd)
+    if not add_match:
+        add_match = re.search(r'^add\s+(.+?)\s+to\s+(?:my\s+)?(?:todo|to-do|tasks?|list|todo\s+list|to-do\s+list)$', cmd)
+    if add_match:
+        return add_task(add_match.group(1).strip())
+
+    # Remove task
+    remove_match = re.search(r'^(?:remove|delete)\s+(.+?)\s+from\s+(?:my\s+)?(?:todo|to-do|tasks?|list|todo\s+list|to-do\s+list)$', cmd)
+    if not remove_match:
+        remove_match = re.search(r'^(?:remove|delete)\s+task\s+(.+)$', cmd)
+    if remove_match:
+        return remove_task(remove_match.group(1).strip())
+
+    # Show tasks
+    if re.search(r'^(?:show|get|view|read|list)\s+(?:my\s+)?(?:todo|to-do|tasks?)(?:\s+list)?$', cmd):
+        return get_tasks()
+
+    # Sort tasks
+    if re.search(r'^sort\s+(?:my\s+)?(?:tasks?|todo|to-do)(?:\s+list)?$', cmd):
+        return sort_tasks()
+
+    # Search tasks
+    search_match = re.search(r'^search\s+(?:tasks?|todo)\s+for\s+(.+)$', cmd)
+    if search_match:
+        return search_tasks(search_match.group(1).strip())
+
+    # Priority tasks
+    priority_match = re.search(r'^(?:show|get)\s+(high|med|medium|low)\s+priority\s+tasks?$', cmd)
+    if priority_match:
+        return get_tasks_by_priority(priority_match.group(1))
+
+    # Calendar events
+    if re.search(r'^(?:show|get|view)\s+(?:my\s+)?(?:calendar|upcoming\s+events?)$', cmd):
+        return get_upcoming_calendar_events()
+
+    return None
+
 todomain = handle_todo_command

@@ -10,7 +10,27 @@ TASKS_DIR = BASE_DIR / "Tasks"
 DATA_DIR.mkdir(exist_ok=True)
 TASKS_DIR.mkdir(exist_ok=True)
 
-# Attempt to load .env file if python-dotenv is available
+# Function to parse .env file without external dependencies
+def _load_env_file(path: Path):
+    if not path.exists():
+        return
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                k = k.strip()
+                v = v.strip().strip("'\"")
+                if k and k not in os.environ:
+                    os.environ[k] = v
+    except Exception as e:
+        print(f"[Config] Error parsing .env: {e}")
+
+# Attempt to load .env file
+_load_env_file(BASE_DIR / ".env")
+
 try:
     from dotenv import load_dotenv
     env_path = BASE_DIR / ".env"
@@ -26,16 +46,15 @@ CREDENTIALS_PATH = BASE_DIR / "credentials.json"
 GENERATED_CONTENT_PATH = BASE_DIR / "generated_content.txt"
 
 # API Keys (Loaded from environment variables or .env file)
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "")
 
 # AI Models & Assistant Settings
 USER_NAME = os.getenv("USER_NAME", "Aditya")
 ASSISTANT_NAME = os.getenv("ASSISTANT_NAME", "NOVA")
-GROQ_CHAT_MODEL = os.getenv("GROQ_CHAT_MODEL", "llama3-70b-8192")
-GROQ_CONTENT_MODEL = os.getenv("GROQ_CONTENT_MODEL", "mixtral-8x7b-32768")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-pro")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.7-flash")
+GEMINI_CHAT_MODEL = os.getenv("GEMINI_CHAT_MODEL", "gemini-3.7-flash")
+GEMINI_CONTENT_MODEL = os.getenv("GEMINI_CONTENT_MODEL", "gemini-3.7-flash")
 
 # Calendar Scopes
 CALENDAR_SCOPES = ['https://www.googleapis.com/auth/calendar']

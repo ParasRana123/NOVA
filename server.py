@@ -1,6 +1,6 @@
 import os
 import json
-import base64
+import re
 from pathlib import Path
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -67,7 +67,7 @@ def get_chat_history():
 
 @app.route('/api/chat', methods=['POST'])
 def process_chat():
-    """Process voice or text prompt through NOVA's command router and LLM."""
+    """Process voice or text prompt through NOVA's command router and Gemini LLM."""
     data = request.get_json() or {}
     user_text = data.get("query", "").strip()
     voice_enabled = data.get("speak", True)
@@ -75,88 +75,90 @@ def process_chat():
     if not user_text:
         return jsonify({"error": "Empty query"}), 400
 
-    command = user_text.lower()
+    cmd = user_text.lower().strip()
     command_type = "general_chat"
     response_text = ""
 
     try:
-        # YouTube playback
-        if "play " in command and "on youtube" in command:
+        # 1. YouTube Playback intent
+        yt_match = re.search(r'^(?:play\s+(.+?)\s+on\s+youtube|play\s+(?:song|music|video)\s+(.+))$', cmd)
+        if yt_match:
             command_type = "multimedia"
-            query = command.replace("play ", "").replace(" on youtube", "").strip()
+            query = (yt_match.group(1) or yt_match.group(2)).strip()
             search_youtube(query, play_first=True)
-            response_text = f"Playing {query} on YouTube."
+            response_text = f"Playing '{query}' on YouTube."
 
-        # Keyboard & OS Media Control
-        elif any(k in command for k in ["increase", "decrease", "mute", "unmute", "pause", "next track", "previous track", "screenshot"]):
-            command_type = "os_control"
-            for k in ["increase", "decrease", "mute", "unmute", "pause", "next track", "previous track", "screenshot"]:
-                if k in command:
-                    handle_keyboard_action(k)
-                    response_text = f"Executed system command: {k}"
-                    break
-
-        # Reminders
-        elif "reminder" in command or "remind" in command:
-            command_type = "reminder"
-            success = reminder(command)
-            response_text = f"Processed reminder: {user_text}" if success else "Failed to parse reminder time."
-
-        # App Closing
-        elif "close" in command and "close window" not in command:
-            command_type = "app_management"
-            app_name = command.replace("close", "").strip()
-            close_application(app_name)
-            response_text = f"Closed application: {app_name}"
-
-        # Web Searches
-        elif "youtube" in command:
+        # 2. Explicit Web Search intents
+        elif re.search(r'^(?:search\s+(?:on\s+)?youtube\s+(?:for\s+)?|youtube\s+search\s+(?:for\s+)?)(.+)$', cmd):
+            m = re.search(r'^(?:search\s+(?:on\s+)?youtube\s+(?:for\s+)?|youtube\s+search\s+(?:for\s+)?)(.+)$', cmd)
             command_type = "search"
-            query = command.replace("youtube", "").strip()
+            query = m.group(1).strip()
             search_youtube(query)
             response_text = f"Searched YouTube for: {query}"
 
-        elif "google" in command:
+        elif re.search(r'^(?:search\s+(?:on\s+)?google\s+(?:for\s+)?|google\s+search\s+(?:for\s+)?)(.+)$', cmd):
+            m = re.search(r'^(?:search\s+(?:on\s+)?google\s+(?:for\s+)?|google\s+search\s+(?:for\s+)?)(.+)$', cmd)
             command_type = "search"
-            query = command.replace("google", "").strip()
+            query = m.group(1).strip()
             search_google(query)
             response_text = f"Searched Google for: {query}"
 
-        elif "amazon" in command:
+        elif re.search(r'^(?:search\s+(?:on\s+)?amazon\s+(?:for\s+)?|amazon\s+search\s+(?:for\s+)?)(.+)$', cmd):
+            m = re.search(r'^(?:search\s+(?:on\s+)?amazon\s+(?:for\s+)?|amazon\s+search\s+(?:for\s+)?)(.+)$', cmd)
             command_type = "search"
-            query = command.split("amazon")[-1].replace("for", "").strip()
+            query = m.group(1).strip()
             search_amazon(query)
             response_text = f"Searched Amazon for: {query}"
 
-        # Content Generation
-        elif "email" in command or "content" in command:
+        # 3. Content Drafting intent
+        elif re.search(r'^(?:draft|write|compose|generate)\s+(?:an?\s+)?(?:email|letter|application|document|content)\s+(?:about|for|on)\s+(.+)$', cmd):
+            m = re.search(r'^(?:draft|write|compose|generate)\s+(?:an?\s+)?(?:email|letter|application|document|content)\s+(?:about|for|on)\s+(.+)$', cmd)
             command_type = "content_drafting"
-            query = command.replace("email", "").replace("content", "").strip()
-            if query:
-                response_text = generate_content(query, auto_open=True)
-            else:
-                response_text = "Please specify what content you would like me to draft."
+            topic = m.group(1).strip()
+            response_text = generate_content(topic, auto_open=True)
 
-        # To-Do & Calendar
-        elif any(k in command for k in ["list", "calendar", "tasks", "remove task", "add in my list"]):
-            command_type = "todo_calendar"
-            handle_todo_command(command)
-            response_text = f"Processed task/calendar command: {user_text}"
+        # 4. Reminders
+        elif re.search(r'^(?:remind\s+me|set\s+(?:a\s+)?reminder)\b', cmd):
+            success, msg = reminder(user_text)
+            if success:
+                command_type = "reminder"
+                response_text = msg
 
-        # App Opening
-        elif "open" in command:
+        # 5. To-Do & Calendar commands
+        if not response_text:
+            todo_res = handle_todo_command(cmd)
+            if todo_res:
+                command_type = "todo_calendar"
+                response_text = todo_res
+
+        # 6. Application management
+        if not response_text and re.search(r'^(?:open|launch)\s+([a-zA-Z0-9\s]+)$', cmd):
+            m = re.search(r'^(?:open|launch)\s+([a-zA-Z0-9\s]+)$', cmd)
+            app_name = m.group(1).strip()
             command_type = "app_management"
-            app_name = command.replace("open", "").strip()
             open_application(app_name)
             response_text = f"Opening {app_name}"
 
-        # General LLM Chat Fallback
-        else:
+        elif not response_text and re.search(r'^(?:close|quit|kill)\s+([a-zA-Z0-9\s]+)$', cmd):
+            m = re.search(r'^(?:close|quit|kill)\s+([a-zA-Z0-9\s]+)$', cmd)
+            app_name = m.group(1).strip()
+            command_type = "app_management"
+            close_application(app_name)
+            response_text = f"Closed application {app_name}"
+
+        # 7. OS Media / Keyboard macros
+        elif not response_text and re.search(r'^(?:(?:increase|decrease|mute|unmute)\s+volume|mute|unmute|pause|resume|next\s+track|previous\s+track|take\s+a?\s*screenshot|screenshot)$', cmd):
+            command_type = "os_control"
+            handle_keyboard_action(cmd)
+            response_text = f"Executed system command: {cmd}"
+
+        # 8. All other queries -> Full Google Gemini conversational intelligence!
+        if not response_text:
             command_type = "ai_chat"
             response_text = ai_chat(user_text)
 
-        # Voice output
-        if voice_enabled and response_text and command_type == "ai_chat":
+        # Speak via desktop TTS if requested
+        if voice_enabled and response_text and command_type in ["ai_chat", "multimedia", "reminder"]:
             default_speech_service.speak(response_text, block=False)
 
         return jsonify({

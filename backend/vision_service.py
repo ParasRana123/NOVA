@@ -1,4 +1,6 @@
 import os
+import base64
+import requests
 from typing import Optional, Union
 from pathlib import Path
 
@@ -22,26 +24,25 @@ class VisionService:
         self.api_key = api_key
         self.model_name = model_name
         self.model = None
-        self._configured = False
         self._setup()
 
     def _setup(self):
+        if not self.api_key:
+            from backend.config import GEMINI_API_KEY
+            self.api_key = GEMINI_API_KEY
+
         if genai and self.api_key:
             try:
                 genai.configure(api_key=self.api_key)
                 self.model = genai.GenerativeModel(self.model_name)
-                self._configured = True
             except Exception as e:
-                print(f"[VisionService] Gemini initialization error: {e}")
-                self._configured = False
+                print(f"[VisionService] Gemini SDK initialization error: {e}")
+                self.model = None
 
     def analyze_image(self, image_input: Union[str, Path, bytes], prompt: Optional[str] = None) -> str:
         """
-        Analyze an image file path or raw bytes using Google Gemini.
+        Analyze an image file path or raw bytes using Google Gemini (SDK or REST fallback).
         """
-        if not self._configured or not self.model:
-            return "Gemini library is not installed or API is not configured. Please check your dependencies and API key."
-
         try:
             if isinstance(image_input, (str, Path)):
                 file_path = Path(image_input)
@@ -49,22 +50,65 @@ class VisionService:
                     return f"Image file not found at {file_path}"
                 with open(file_path, "rb") as f:
                     image_data = f.read()
-                
-                # Determine mime type from extension
                 suffix = file_path.suffix.lower()
                 mime_type = "image/png" if suffix == ".png" else "image/jpeg"
             else:
                 image_data = image_input
                 mime_type = "image/jpeg"
 
-            image_part = {
-                "mime_type": mime_type,
-                "data": image_data
+            analysis_prompt = prompt or DEFAULT_VISION_PROMPT
+
+            # Try SDK if available
+            if self.model:
+                try:
+                    image_part = {
+                        "mime_type": mime_type,
+                        "data": image_data
+                    }
+                    response = self.model.generate_content([analysis_prompt, image_part])
+                    if response and hasattr(response, 'text') and response.text:
+                        return response.text
+                except Exception as e:
+                    print(f"[VisionService] SDK call failed, trying REST fallback: {e}")
+
+            # REST fallback
+            if not self.api_key:
+                from backend.config import GEMINI_API_KEY
+                self.api_key = GEMINI_API_KEY
+
+            if not self.api_key:
+                return "Gemini API key is not configured. Please set GEMINI_API_KEY in .env."
+
+            b64_img = base64.b64encode(image_data).decode("utf-8")
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self.api_key}"
+            payload = {
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": analysis_prompt},
+                            {
+                                "inline_data": {
+                                    "mime_type": mime_type,
+                                    "data": b64_img
+                                }
+                            }
+                        ]
+                    }
+                ]
             }
 
-            analysis_prompt = prompt or DEFAULT_VISION_PROMPT
-            response = self.model.generate_content([analysis_prompt, image_part])
-            return response.text if response and hasattr(response, 'text') else "No analysis returned."
+            res = requests.post(url, json=payload, timeout=25)
+            data = res.json()
+            if res.status_code == 200:
+                candidates = data.get("candidates", [])
+                if candidates and "content" in candidates[0]:
+                    parts = candidates[0]["content"].get("parts", [])
+                    if parts and "text" in parts[0]:
+                        return parts[0]["text"]
+                return "No analysis returned from Gemini."
+            else:
+                err = data.get("error", {}).get("message", res.text)
+                return f"Gemini Vision API Error ({res.status_code}): {err}"
 
         except Exception as e:
             print(f"[VisionService] Error during image analysis: {e}")

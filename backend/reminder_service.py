@@ -1,3 +1,4 @@
+import re
 import threading
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
@@ -31,39 +32,34 @@ def trigger_reminder(message: str):
     print(f"[Reminder Triggered]: {message}")
     speak(f"Sir, here is your reminder: {message}")
 
-def reminder(text: str) -> bool:
+def reminder(text: str) -> Tuple[bool, str]:
     """
     Parse a natural-language reminder command and schedule a background timer.
     Example: 'remind me to call mom at 5:00 pm'
+    Returns: (success: bool, status_message: str)
     """
-    try:
-        command = text.upper().replace("REMIND ME TO", "").replace("REMIND ME", "").strip()
-        if " AT " not in f" {command} ":
-            speak("Please specify a time using 'at [time]', for example: remind me to call mom at 5pm.")
-            return False
+    match = re.search(r'^(?:remind\s+me\s+(?:to\s+)?|set\s+(?:a\s+)?reminder\s+(?:to\s+)?)(.+?)\s+at\s+([0-9:apm\.\s]+)$', text.strip(), re.IGNORECASE)
+    if not match:
+        return False, "Not a valid reminder command format."
 
-        message, time_part = command.rsplit("AT", 1)
-        message = message.strip()
-        time_part = time_part.strip()
+    message = match.group(1).strip()
+    time_part = match.group(2).strip()
 
-        reminder_dt = parse_time_str(time_part)
-        if not reminder_dt:
-            speak("I couldn't understand the time format. Please use formats like '5 PM' or '14:30'.")
-            return False
+    reminder_dt = parse_time_str(time_part)
+    if not reminder_dt:
+        msg = f"Couldn't parse time '{time_part}'. Please use formats like '5 PM' or '14:30'."
+        speak(msg)
+        return False, msg
 
-        now = datetime.now()
-        delay_seconds = (reminder_dt - now).total_seconds()
+    now = datetime.now()
+    delay_seconds = (reminder_dt - now).total_seconds()
 
-        # Schedule timer
-        timer = threading.Timer(delay_seconds, trigger_reminder, args=[message])
-        timer.daemon = True
-        timer.start()
+    # Schedule timer
+    timer = threading.Timer(delay_seconds, trigger_reminder, args=[message])
+    timer.daemon = True
+    timer.start()
 
-        formatted_time = reminder_dt.strftime('%I:%M %p')
-        speak(f"Reminder set for {formatted_time} to {message}")
-        return True
-
-    except Exception as e:
-        print(f"[ReminderService] Error: {e}")
-        speak("An error occurred while setting the reminder.")
-        return False
+    formatted_time = reminder_dt.strftime('%I:%M %p')
+    msg = f"Reminder set for {formatted_time} to {message}"
+    speak(msg)
+    return True, msg

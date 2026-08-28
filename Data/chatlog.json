@@ -22,5 +22,69 @@
     {
         "role": "assistant",
         "content": "It seems like our conversation was cut short. You had mentioned receiving a notification about Task 2 and then abruptly ended with a phrase about \"thank you for watching.\" I'm assuming this might be a reference to a video or a presentation, and you were perhaps saying goodbye to your audience.\nIn any case, I appreciate the opportunity to chat with you, even if it was brief. If you have any other questions or topics you'd like to discuss in the future, feel free to reach out to me anytime."
+    },
+    {
+        "role": "user",
+        "content": "He he knows and listen."
+    },
+    {
+        "role": "assistant",
+        "content": "Gemini API Error (403): Permission denied: Consumer 'api_key:AIzaSyC_vdf5ZoD7te2A-R2tpmL0GrZgGopODfQ' has been suspended."
+    },
+    {
+        "role": "user",
+        "content": "add buy groceries to my todo list"
+    },
+    {
+        "role": "assistant",
+        "content": "Gemini API Error (403): Permission denied: Consumer 'api_key:AIzaSyC_vdf5ZoD7te2A-R2tpmL0GrZgGopODfQ' has been suspended."
+    },
+    {
+        "role": "user",
+        "content": "He he knows and listen."
+    },
+    {
+        "role": "assistant",
+        "content": "Gemini API Error (403): Permission denied: Consumer 'api_key:AIzaSyC_vdf5ZoD7te2A-R2tpmL0GrZgGopODfQ' has been suspended."
+    },
+    {
+        "role": "user",
+        "content": "Hey, Noah, who are you?"
+    },
+    {
+        "role": "assistant",
+        "content": "Gemini API Error (403): Permission denied: Consumer 'api_key:AIzaSyC_vdf5ZoD7te2A-R2tpmL0GrZgGopODfQ' has been suspended."
+    },
+    {
+        "role": "user",
+        "content": "Hey, Nova, can you listen me?"
+    },
+    {
+        "role": "assistant",
+        "content": "Gemini API Error (404): models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods."
+    },
+    {
+        "role": "user",
+        "content": "Hey Nova, can you listen to me?"
+    },
+    {
+        "role": "assistant",
+        "content": "Gemini API Error (404): models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods."
+    },
+    {
+        "role": "user",
+        "content": "Hey, Noah, can you listen to me?"
+    },
+    {
+        "role": "assistant",
+        "content": "Error connecting to Gemini API: HTTPSConnectionPool(host='generativelanguage.googleapis.com', port=443): Read timed out. (read timeout=20)"
+    },
+    {
+        "role": "user",
+        "content": "Hey, no one can understand me."
+    },
+    {
+        "role": "assistant",
+        "content": "Error connecting to Gemini API: HTTPSConnectionPool(host='generativelanguage.googleapis.com', port=443): Read timed out. (read timeout=20)"
     }
 ]

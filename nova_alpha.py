@@ -3,22 +3,22 @@ import datetime
 import requests
 import pyttsx3
 import speech_recognition as sr
-from backend.config import GROQ_API_KEY, OPENWEATHER_API_KEY, USER_NAME, ASSISTANT_NAME
+from backend.config import GEMINI_API_KEY, GEMINI_MODEL, OPENWEATHER_API_KEY, USER_NAME, ASSISTANT_NAME
 
 try:
-    from groq import Groq
-    client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+    import google.generativeai as genai
+    if GEMINI_API_KEY:
+        genai.configure(api_key=GEMINI_API_KEY)
+        gemini_model = genai.GenerativeModel(GEMINI_MODEL)
+    else:
+        gemini_model = None
 except ImportError:
-    client = None
+    genai = None
+    gemini_model = None
 
 # User and Assistant details
 Username = USER_NAME
 Assistantname = ASSISTANT_NAME
-
-# System instructions
-System = f"""Hello, I am {Username}. You are a very accurate and advanced AI chatbot named {Assistantname}, which has real-time up-to-date information from the internet.
-*** Provide answers in a professional way, making sure to use proper grammar, punctuation, and formal tone. ***
-*** Just answer the question from the provided data in a professional way. ***"""
 
 # Load chat history
 try:
@@ -63,8 +63,8 @@ def AnswerModifier(answer):
 # Main function to handle real-time responses
 def RealtimeSearchEngine(prompt):
     global messages
-    if not client:
-        return "Groq client is not configured."
+    if not gemini_model:
+        return "Gemini AI model is not configured."
 
     with open(r"Data\ChatLog.json", "r") as f:
         messages = load(f)
@@ -73,31 +73,23 @@ def RealtimeSearchEngine(prompt):
     if "weather" in prompt.lower():
         city_name = prompt.split("weather in")[-1].strip()
         weather_info = get_weather(city_name)
-        system_context = {"role": "system", "content": weather_info}
+        system_context = f"Weather info: {weather_info}"
     else:
-        system_context = {"role": "system", "content": Information()}
+        system_context = Information()
 
-    completion = client.chat.completions.create(
-        model="llama3-70b-8192",
-        messages=[{"role": "system", "content": System}, system_context] + messages,
-        max_tokens=1024,
-        temperature=0.7,
-        top_p=1,
-        stream=True
-    )
+    full_prompt = f"{system_context}\n\nUser Question: {prompt}"
+    try:
+        response = gemini_model.generate_content(full_prompt)
+        answer = response.text if response and hasattr(response, 'text') else ""
+        answer = AnswerModifier(answer)
+        messages.append({"role": "assistant", "content": answer})
 
-    answer = ""
-    for chunk in completion:
-        if chunk.choices[0].delta.content:
-            answer += chunk.choices[0].delta.content
+        with open(r"Data\ChatLog.json", "w") as f:
+            dump(messages, f, indent=4)
 
-    answer = AnswerModifier(answer)
-    messages.append({"role": "assistant", "content": answer})
-
-    with open(r"Data\ChatLog.json", "w") as f:
-        dump(messages, f, indent=4)
-
-    return answer
+        return answer
+    except Exception as e:
+        return f"Gemini error: {e}"
 
 def setup_nova():
     jarvis = pyttsx3.init()

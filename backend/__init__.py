@@ -1,6 +1,6 @@
 """
 NOVA Backend Package
-Exposes core virtual assistant functionalities including AI chat, Computer Vision,
+Exposes core virtual assistant functionalities including Gemini AI chat & Vision,
 Voice/TTS, Calendar, To-Do lists, OS controls, Reminders, and Weather.
 """
 
@@ -9,7 +9,6 @@ from backend.config import (
     DATA_DIR,
     TASKS_DIR,
     CHATLOG_PATH,
-    GROQ_API_KEY,
     GEMINI_API_KEY,
     OPENWEATHER_API_KEY,
     USER_NAME,
@@ -84,7 +83,6 @@ __all__ = [
     "DATA_DIR",
     "TASKS_DIR",
     "CHATLOG_PATH",
-    "GROQ_API_KEY",
     "GEMINI_API_KEY",
     "OPENWEATHER_API_KEY",
     "USER_NAME",
