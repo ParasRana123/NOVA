@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
@@ -32,33 +32,58 @@ from backend.os_service import (
 )
 
 app = Flask(__name__)
-# Enable Cross-Origin Resource Sharing for all origins (local dev & Vercel production)
-CORS(app, resources={r"/*": {"origins": "*"}})
+
+# Enable Cross-Origin Resource Sharing globally
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=False)
+
+@app.after_request
+def add_cors_headers(response):
+    """Ensure CORS headers are present on every response including errors and preflight."""
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, HEAD'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Accept'
+    return response
 
 UPLOAD_FOLDER = BASE_DIR / "Data" / "uploads"
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = str(UPLOAD_FOLDER)
 
-@app.route('/', methods=['GET'])
+@app.route('/', methods=['GET', 'HEAD', 'OPTIONS'])
+@app.route('/api', methods=['GET', 'HEAD', 'OPTIONS'])
 def root_status():
+    if request.method == 'OPTIONS':
+        return make_response("", 204)
     return jsonify({
         "message": "NOVA Virtual Assistant API is running.",
         "assistant": "NOVA",
         "version": "2.0.0",
-        "status": "online"
+        "status": "online",
+        "endpoints": [
+            "/api/health",
+            "/api/chat",
+            "/api/weather",
+            "/api/chat-history",
+            "/api/analyze-image",
+            "/api/speak"
+        ]
     })
 
-@app.route('/api/health', methods=['GET'])
+@app.route('/health', methods=['GET', 'HEAD', 'OPTIONS'])
+@app.route('/api/health', methods=['GET', 'HEAD', 'OPTIONS'])
 def health():
+    if request.method == 'OPTIONS':
+        return make_response("", 204)
     return jsonify({
         "status": "healthy",
         "assistant": "NOVA",
         "version": "2.0.0"
     })
 
-@app.route('/api/weather', methods=['GET'])
+@app.route('/api/weather', methods=['GET', 'OPTIONS'])
 def get_weather_telemetry():
     """Fetch current location and weather details."""
+    if request.method == 'OPTIONS':
+        return make_response("", 204)
     try:
         location, lat, lon = get_location_by_ip()
         weather_desc = get_weather(lat, lon, OPENWEATHER_API_KEY)
@@ -71,9 +96,11 @@ def get_weather_telemetry():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/chat-history', methods=['GET'])
+@app.route('/api/chat-history', methods=['GET', 'OPTIONS'])
 def get_chat_history():
     """Return stored chat history from chatlog.json."""
+    if request.method == 'OPTIONS':
+        return make_response("", 204)
     try:
         if CHATLOG_PATH.exists():
             with open(CHATLOG_PATH, "r", encoding="utf-8") as f:
@@ -83,9 +110,12 @@ def get_chat_history():
     except Exception as e:
         return jsonify({"error": str(e), "history": []}), 500
 
-@app.route('/api/chat', methods=['POST'])
+@app.route('/api/chat', methods=['POST', 'OPTIONS'])
 def process_chat():
     """Process voice or text prompt through NOVA's full command suite and Gemini LLM."""
+    if request.method == 'OPTIONS':
+        return make_response("", 204)
+
     data = request.get_json() or {}
     user_text = data.get("query", "").strip()
     voice_enabled = data.get("speak", True)
@@ -95,7 +125,7 @@ def process_chat():
 
     # Normalize command (strip punctuation, lower-case, remove conversational prefixes like "hey nova", "please")
     cmd = user_text.lower().strip().rstrip(".,!?")
-    clean_cmd = re.sub(r'^(?:hey\s+nova,?\s*|nova,?\s*|please\s+|can\s+you\s+)', '', cmd).strip()
+    clean_cmd = re.sub(r'^(?:hey\s+nova,?\s*|nova,?\s*|innova,?\s*|please\s+|can\s+you\s+)', '', cmd).strip()
     command_type = "general_chat"
     response_text = ""
 
@@ -207,9 +237,12 @@ def process_chat():
             command_type = "ai_chat"
             response_text = ai_chat(user_text)
 
-        # Spoken audio via TTS
+        # Spoken audio via desktop TTS (if running in desktop environment)
         if voice_enabled and response_text and command_type in ["ai_chat", "multimedia", "reminder", "app_management", "telemetry", "weather", "system"]:
-            default_speech_service.speak(response_text, block=False)
+            try:
+                default_speech_service.speak(response_text, block=False)
+            except Exception:
+                pass
 
         return jsonify({
             "query": user_text,
@@ -221,9 +254,11 @@ def process_chat():
     except Exception as e:
         return jsonify({"error": str(e), "status": "error"}), 500
 
-@app.route('/api/analyze-image', methods=['POST'])
+@app.route('/api/analyze-image', methods=['POST', 'OPTIONS'])
 def analyze_image_endpoint():
     """Analyze uploaded image using Gemini Vision."""
+    if request.method == 'OPTIONS':
+        return make_response("", 204)
     try:
         if 'image' not in request.files:
             return jsonify({"error": "No image uploaded"}), 400
@@ -245,15 +280,33 @@ def analyze_image_endpoint():
     except Exception as e:
         return jsonify({"error": str(e), "status": "error"}), 500
 
-@app.route('/api/speak', methods=['POST'])
+@app.route('/api/speak', methods=['POST', 'OPTIONS'])
 def speak_endpoint():
     """Trigger desktop TTS synthesis."""
+    if request.method == 'OPTIONS':
+        return make_response("", 204)
     data = request.get_json() or {}
     text = data.get("text", "").strip()
     if text:
         speak(text)
         return jsonify({"status": "spoken", "text": text})
     return jsonify({"error": "No text provided"}), 400
+
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify({
+        "error": "Endpoint not found",
+        "status": 404,
+        "available_endpoints": [
+            "/",
+            "/api/health",
+            "/api/chat",
+            "/api/weather",
+            "/api/chat-history",
+            "/api/analyze-image",
+            "/api/speak"
+        ]
+    }), 404
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
