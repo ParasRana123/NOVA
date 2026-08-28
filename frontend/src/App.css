@@ -167,38 +167,58 @@
 .command-actions {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.65rem;
   flex-wrap: wrap;
+}
+
+/* Base style for all action buttons */
+.btn-primary,
+.btn-voice,
+.btn-copy,
+.btn-speech-toggle {
+  height: 42px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  user-select: none;
 }
 
 .btn-primary {
   background: var(--neon-green);
   color: #000000;
   font-weight: 800;
-  font-size: 0.95rem;
-  padding: 0.65rem 1.5rem;
-  border-radius: 6px;
-  letter-spacing: 0.5px;
+  font-size: 0.92rem;
+  padding: 0 1.35rem;
+  letter-spacing: 0.3px;
   box-shadow: 0 0 12px rgba(0, 230, 118, 0.3);
 }
 
 .btn-primary:hover:not(:disabled) {
   background: #25f48e;
   box-shadow: var(--neon-green-glow);
+  transform: translateY(-1px);
 }
 
+/* Icon Buttons: Exactly 42px x 42px squares with centered icons */
 .btn-voice {
+  width: 42px;
+  min-width: 42px;
   background: var(--neon-blue);
   color: #ffffff;
-  padding: 0.65rem 1.4rem;
-  border-radius: 6px;
-  font-size: 1.1rem;
+  padding: 0;
+  font-size: 1.15rem;
   position: relative;
 }
 
 .btn-voice:hover {
   background: #0056b3;
   box-shadow: var(--neon-blue-glow);
+  transform: translateY(-1px);
 }
 
 .btn-voice.listening {
@@ -218,18 +238,19 @@
 }
 
 .btn-copy {
-  background: #2b2f38;
+  background: #232730;
   color: #e0e0e0;
   font-weight: 600;
-  font-size: 0.9rem;
-  padding: 0.65rem 1.2rem;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.88rem;
+  padding: 0 1.15rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .btn-copy:hover {
-  background: #3c424e;
+  background: #333945;
   color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
 }
 
 .btn-copy.copied {
@@ -239,16 +260,23 @@
 }
 
 .btn-speech-toggle {
+  width: 42px;
+  min-width: 42px;
   background: #1e2430;
   color: #ffffff;
-  padding: 0.65rem 1rem;
-  border-radius: 6px;
-  font-size: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0;
+  font-size: 1.05rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.btn-speech-toggle:hover {
+  background: #2b3344;
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
 }
 
 .btn-speech-toggle.disabled {
-  opacity: 0.5;
+  opacity: 0.45;
 }
 
 /* Primary Dashboard Grid */
@@ -907,13 +935,29 @@
 
   .command-actions {
     width: 100%;
-    justify-content: space-between;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 
   .btn-primary {
     flex: 1;
-    text-align: center;
-    padding: 0.75rem 1rem;
+    height: 42px;
+    padding: 0 0.85rem;
+  }
+
+  .btn-voice,
+  .btn-speech-toggle {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    flex-shrink: 0;
+  }
+
+  .btn-copy {
+    height: 42px;
+    padding: 0 0.75rem;
+    flex-shrink: 0;
   }
 
   .hero-visualizer-container {
