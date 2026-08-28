@@ -29,7 +29,7 @@ from backend.os_service import (
     search_google,
     search_amazon,
     get_supported_commands_guide,
-    get_app_web_url
+    get_app_action_payload
 )
 
 app = Flask(__name__)
@@ -142,8 +142,7 @@ def process_chat():
             m = re.search(r'^(?:open|launch|start)\s+([a-zA-Z0-9\s\.\-_]+)$', clean_cmd)
             app_name = m.group(1).strip()
             command_type = "app_management"
-            web_url = get_app_web_url(app_name)
-            action = {"type": "open_url", "url": web_url, "app": app_name}
+            action = get_app_action_payload(app_name)
             success = open_application(app_name)
             response_text = f"Opening {app_name} on your device." if success else f"Opening {app_name}."
 

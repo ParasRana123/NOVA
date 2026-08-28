@@ -14,34 +14,77 @@ export default function HeaderCommandBar({
   const [copied, setCopied] = useState(false);
   const recognitionRef = useRef(null);
   const isListeningRef = useRef(false);
+  const onSendMessageRef = useRef(onSendMessage);
+  const silenceTimerRef = useRef(null);
+  const accumulatedTranscriptRef = useRef('');
 
-  // Initialize Web Speech API for voice listening with robust event handling
+  useEffect(() => {
+    onSendMessageRef.current = onSendMessage;
+  }, [onSendMessage]);
+
+  // Initialize Web Speech API with real-time streaming and silence auto-submit
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       try {
         const recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.interimResults = false;
+        recognition.continuous = true;
+        recognition.interimResults = true;
         recognition.lang = 'en-US';
 
         recognition.onstart = () => {
           isListeningRef.current = true;
           setIsListening(true);
           onListeningStateChange?.(true);
+          accumulatedTranscriptRef.current = '';
         };
 
         recognition.onresult = (event) => {
-          const transcript = event.results?.[0]?.[0]?.transcript;
-          if (transcript) {
-            setInputVal(transcript);
-            onSendMessage(transcript);
+          let interimText = '';
+          let finalText = '';
+
+          for (let i = 0; i < event.results.length; ++i) {
+            const transcript = event.results[i][0]?.transcript || '';
+            if (event.results[i].isFinal) {
+              finalText += transcript + ' ';
+            } else {
+              interimText += transcript;
+            }
           }
+
+          const combined = (finalText + interimText).trim();
+          if (combined) {
+            setInputVal(combined);
+            accumulatedTranscriptRef.current = combined;
+          }
+
+          // Auto-submit after 1.5s of silence
+          if (silenceTimerRef.current) {
+            clearTimeout(silenceTimerRef.current);
+          }
+
+          silenceTimerRef.current = setTimeout(() => {
+            const queryToSend = accumulatedTranscriptRef.current.trim();
+            if (queryToSend) {
+              try {
+                recognition.stop();
+              } catch (_) {}
+              isListeningRef.current = false;
+              setIsListening(false);
+              onListeningStateChange?.(false);
+              setInputVal('');
+              accumulatedTranscriptRef.current = '';
+              onSendMessageRef.current(queryToSend);
+            }
+          }, 1500);
         };
 
         recognition.onerror = (event) => {
           if (event.error !== 'no-speech' && event.error !== 'aborted') {
-            console.warn('Speech recognition notice:', event.error);
+            console.warn('Speech recognition status:', event.error);
+          }
+          if (event.error === 'not-allowed') {
+            alert('Microphone access was denied. Please allow microphone permissions in your browser bar.');
           }
           isListeningRef.current = false;
           setIsListening(false);
@@ -56,43 +99,60 @@ export default function HeaderCommandBar({
 
         recognitionRef.current = recognition;
       } catch (e) {
-        console.warn('Speech recognition init notice:', e);
+        console.warn('Speech recognition initialization notice:', e);
       }
     }
 
     return () => {
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       if (recognitionRef.current && isListeningRef.current) {
         try {
           recognitionRef.current.abort();
         } catch (_) {}
       }
     };
-  }, [onSendMessage, onListeningStateChange]);
+  }, [onListeningStateChange]);
 
   const handleSubmit = (e) => {
     e?.preventDefault();
-    if (!inputVal.trim() || isProcessing) return;
-    const query = inputVal.trim();
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    if (recognitionRef.current && isListeningRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (_) {}
+    }
+    const query = inputVal.trim() || accumulatedTranscriptRef.current.trim();
+    if (!query || isProcessing) return;
     setInputVal('');
-    onSendMessage(query);
+    accumulatedTranscriptRef.current = '';
+    onSendMessageRef.current(query);
   };
 
   const handleVoiceToggle = () => {
     if (!recognitionRef.current) {
-      alert('Speech Recognition is not supported on this browser. Try Chrome/Edge or use the text input.');
+      alert('Speech Recognition is not supported on this browser. Please use Chrome or Edge.');
       return;
     }
 
     if (isListening) {
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       try {
         recognitionRef.current.stop();
       } catch (_) {}
+      const query = inputVal.trim() || accumulatedTranscriptRef.current.trim();
+      if (query) {
+        setInputVal('');
+        accumulatedTranscriptRef.current = '';
+        onSendMessageRef.current(query);
+      }
     } else {
       try {
+        accumulatedTranscriptRef.current = '';
+        setInputVal('');
         recognitionRef.current.start();
       } catch (err) {
         if (err.name !== 'InvalidStateError') {
-          console.warn('Speech recognition start notice:', err);
+          console.warn('Speech recognition notice:', err);
         }
       }
     }
@@ -111,13 +171,19 @@ export default function HeaderCommandBar({
     <div className="header-command-bar">
       <form className="command-input-container" onSubmit={handleSubmit}>
         <div className="input-glow-wrapper">
-          <span className="input-prefix">&gt;</span>
+          <span className={`input-prefix ${isListening ? 'listening-pulse' : ''}`}>
+            {isListening ? '🎙️' : '>'}
+          </span>
           <input
             type="text"
-            className="cyber-input"
+            className={`cyber-input ${isListening ? 'input-recording' : ''}`}
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
-            placeholder="Type a command (e.g. 'open whatsapp', 'play interstellar on youtube', 'remind me at 5pm', 'weather in Mumbai')..."
+            placeholder={
+              isListening
+                ? 'Listening... Speak your command now'
+                : "Type or click 🎤 (e.g. 'open whatsapp', 'play interstellar on youtube', 'remind me at 5pm')..."
+            }
             disabled={isProcessing}
             autoFocus
           />
@@ -141,9 +207,9 @@ export default function HeaderCommandBar({
 
           <button
             type="button"
-            className={`btn-voice ${isListening ? 'listening' : ''}`}
+            className={`btn-voice ${isListening ? 'listening active-recording' : ''}`}
             onClick={handleVoiceToggle}
-            title={isListening ? 'Listening... click to stop' : 'Click to speak via microphone'}
+            title={isListening ? 'Listening... click to send' : 'Click to speak via microphone'}
           >
             <span className="mic-icon">🎤</span>
             {isListening && <span className="pulse-ring"></span>}

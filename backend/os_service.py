@@ -3,7 +3,7 @@ import sys
 import webbrowser
 import subprocess
 import re
-from typing import Optional
+from typing import Optional, Dict, Any
 
 try:
     import keyboard
@@ -20,7 +20,7 @@ try:
 except ImportError:
     playonyt = None
 
-# Known Windows app protocol schemes and executable aliases
+# Known Windows app protocol schemes and executable aliases (for local desktop execution)
 WINDOWS_APP_PROTOCOLS = {
     "whatsapp": ["start whatsapp:", "start whatsapp", "https://web.whatsapp.com"],
     "calculator": ["calc.exe", "start calc:"],
@@ -48,7 +48,31 @@ WINDOWS_APP_PROTOCOLS = {
     "task manager": ["taskmgr.exe"],
 }
 
-# Web URL mappings for browser/cloud production execution
+# Native OS URI schemes that open the installed desktop / mobile application directly
+APP_NATIVE_PROTOCOLS = {
+    "whatsapp": "whatsapp://",
+    "spotify": "spotify://",
+    "vscode": "vscode://",
+    "vs code": "vscode://",
+    "discord": "discord://",
+    "telegram": "tg://",
+    "calculator": "calc:",
+    "calc": "calc:",
+    "settings": "ms-settings:",
+    "camera": "microsoft.windows.camera:",
+    "calendar": "outlookcal:",
+    "mail": "mailto:",
+    "gmail": "mailto:",
+    "maps": "bingmaps:?",
+    "photos": "ms-photos:",
+    "clock": "ms-clock:",
+    "alarms": "ms-clock:",
+    "store": "ms-windows-store:",
+    "zoom": "zoommtg://",
+    "slack": "slack://",
+}
+
+# Web URL fallbacks
 APP_WEB_URLS = {
     "whatsapp": "https://web.whatsapp.com",
     "spotify": "https://open.spotify.com",
@@ -81,15 +105,31 @@ APP_WEB_URLS = {
     "settings": "ms-settings:"
 }
 
-def get_app_web_url(app_name: str) -> str:
-    """Get web URL or protocol for an app to trigger client-side opening in web/cloud."""
+def get_app_action_payload(app_name: str) -> Dict[str, Any]:
+    """Return protocol URI for native app opening and fallback web URL."""
     clean = app_name.lower().strip().rstrip(".,!?")
-    if clean in APP_WEB_URLS:
-        return APP_WEB_URLS[clean]
+    protocol = None
+    web_url = None
+
+    for k, v in APP_NATIVE_PROTOCOLS.items():
+        if k == clean or k in clean or clean in k:
+            protocol = v
+            break
+
     for k, v in APP_WEB_URLS.items():
-        if k in clean or clean in k:
-            return v
-    return f"https://www.google.com/search?q={clean}"
+        if k == clean or k in clean or clean in k:
+            web_url = v
+            break
+
+    if not web_url:
+        web_url = f"https://www.google.com/search?q={clean}"
+
+    return {
+        "type": "open_app",
+        "app": clean,
+        "protocol": protocol,
+        "url": web_url
+    }
 
 def mute():
     if keyboard:
@@ -298,7 +338,7 @@ def get_supported_commands_guide() -> str:
     return """✨ **NOVA Supported Commands Guide**
 
 🎛️ **App & OS Control:**
-• `Open <app>` (e.g. *Open WhatsApp*, *Open Chrome*, *Open Notepad*, *Open Calculator*, *Open Spotify*, *Open VS Code*)
+• `Open <app>` (e.g. *Open WhatsApp*, *Open Spotify*, *Open Calculator*, *Open Chrome*, *Open VS Code*, *Open Settings*)
 • `Close <app>` (e.g. *Close WhatsApp*, *Close Chrome*, *Close Notepad*)
 • `Close window` *(Alt+F4)*
 • `Take a screenshot` / `Screenshot`
@@ -327,7 +367,7 @@ def get_supported_commands_guide() -> str:
 
 ✍️ **Content & Productivity:**
 • `Draft email for <topic>` / `Write email about <topic>` / `Email <topic>`
-• `Write application for <topic>` / `Content <topic>` *(Generates and opens in Notepad)*
+• `Write application for <topic>` / `Content <topic>`
 
 ⛅ **Live Telemetry & Info:**
 • `Weather in <city>` / `What is the weather?`

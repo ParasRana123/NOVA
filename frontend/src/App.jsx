@@ -8,6 +8,48 @@ import ChatHistoryPanel from './components/ChatHistoryPanel';
 import VisionAnalyzer from './components/VisionAnalyzer';
 import { fetchHealth, fetchWeather, fetchChatHistory, sendChatMessage, speakText } from './services/api';
 
+// Function to trigger native OS application schemes (e.g. whatsapp://, spotify://, calc:, vscode://)
+function launchNativeAppOrWeb(action) {
+  if (!action) return;
+  const { protocol, url, app } = action;
+
+  if (protocol) {
+    console.log(`[NOVA Client] Launching native application protocol: ${protocol} (${app})`);
+    
+    // Method 1: Use hidden iframe to launch OS app without page navigation
+    try {
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.top = '-9999px';
+      iframe.style.left = '-9999px';
+      iframe.style.width = '1px';
+      iframe.style.height = '1px';
+      iframe.style.border = 'none';
+      iframe.src = protocol;
+      document.body.appendChild(iframe);
+
+      setTimeout(() => {
+        try {
+          document.body.removeChild(iframe);
+        } catch (_) {}
+      }, 3000);
+    } catch (_) {
+      try {
+        window.location.href = protocol;
+      } catch (err) {
+        console.warn('Protocol navigation notice:', err);
+      }
+    }
+  } else if (url) {
+    console.log(`[NOVA Client] Opening action URL: ${url}`);
+    try {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (popupErr) {
+      console.warn('Action URL trigger notice:', popupErr);
+    }
+  }
+}
+
 function App() {
   const [serverOnline, setServerOnline] = useState(false);
   const [weatherData, setWeatherData] = useState(null);
@@ -37,7 +79,7 @@ function App() {
 
   useEffect(() => {
     loadTelemetry();
-    const interval = setInterval(loadTelemetry, 30000); // 30s telemetry polling
+    const interval = setInterval(loadTelemetry, 30000);
     return () => clearInterval(interval);
   }, [loadTelemetry]);
 
@@ -57,16 +99,9 @@ function App() {
       setCommandType(result.command_type || 'general_chat');
       setStatusText(result.status === 'success' ? 'Command completed.' : 'Response received.');
 
-      // Execute client-side web/OS action (e.g. open WhatsApp, YouTube, Google, Spotify, etc.)
-      if (result.action && result.action.url) {
-        try {
-          const popup = window.open(result.action.url, '_blank', 'noopener,noreferrer');
-          if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-            console.info('Client-side action URL triggered:', result.action.url);
-          }
-        } catch (actionErr) {
-          console.warn('Action trigger notice:', actionErr);
-        }
+      // Launch native OS desktop app or web URL
+      if (result.action) {
+        launchNativeAppOrWeb(result.action);
       }
 
       // Browser Speech Synthesis with guarded lifecycle

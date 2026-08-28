@@ -203,7 +203,18 @@
 
 .btn-voice.listening {
   background: #ff1744;
+  box-shadow: 0 0 15px rgba(255, 23, 68, 0.7);
   animation: pulseGlow 1s infinite;
+}
+
+.listening-pulse {
+  animation: pulseGlow 1s infinite;
+  display: inline-block;
+}
+
+.input-recording {
+  color: #00ffcc !important;
+  text-shadow: 0 0 8px rgba(0, 255, 204, 0.4);
 }
 
 .btn-copy {
