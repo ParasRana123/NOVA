@@ -6,7 +6,7 @@ import WeatherClockWidget from './components/WeatherClockWidget';
 import ResponseDisplay from './components/ResponseDisplay';
 import ChatHistoryPanel from './components/ChatHistoryPanel';
 import VisionAnalyzer from './components/VisionAnalyzer';
-import { fetchHealth, fetchWeather, fetchChatHistory, sendChatMessage, speakText } from './services/api';
+import { fetchHealth, fetchWeather, fetchChatHistory, sendChatMessage, speakText, getClientCoordinates } from './services/api';
 
 // Function to automatically launch native apps or navigate to direct official URLs
 function autoRedirectOrLaunch(action) {
@@ -72,7 +72,9 @@ function App() {
     const health = await fetchHealth();
     setServerOnline(health.status === 'healthy');
 
-    const weather = await fetchWeather();
+    // Get user's actual browser/GPS coordinates
+    const coords = await getClientCoordinates();
+    const weather = await fetchWeather(coords?.lat, coords?.lon);
     setWeatherData(weather);
 
     const history = await fetchChatHistory();
@@ -210,7 +212,8 @@ function App() {
           <WeatherClockWidget
             weatherData={weatherData}
             onRefreshWeather={async () => {
-              const w = await fetchWeather();
+              const coords = await getClientCoordinates();
+              const w = await fetchWeather(coords?.lat, coords?.lon);
               setWeatherData(w);
             }}
           />

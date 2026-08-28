@@ -16,7 +16,7 @@ from werkzeug.utils import secure_filename
 # Import NOVA backend services
 from backend.config import CHATLOG_PATH, OPENWEATHER_API_KEY
 from backend.speech_service import speak, default_speech_service
-from backend.weather_service import get_location_by_ip, get_weather, get_weather_by_city
+from backend.weather_service import get_location_by_ip, get_weather, get_weather_by_city, get_weather_details
 from backend.ai_service import chat as ai_chat, generate_content
 from backend.vision_service import analyze_image as gemini_analyze_image
 from backend.todo_service import handle_todo_command
@@ -82,18 +82,25 @@ def health():
 
 @app.route('/api/weather', methods=['GET', 'OPTIONS'])
 def get_weather_telemetry():
-    """Fetch current location and weather details."""
+    """Fetch current location and weather details (supports client GPS coordinates)."""
     if request.method == 'OPTIONS':
         return make_response("", 204)
     try:
-        location, lat, lon = get_location_by_ip()
-        weather_desc = get_weather(lat, lon, OPENWEATHER_API_KEY)
-        return jsonify({
-            "location": location,
-            "latitude": lat,
-            "longitude": lon,
-            "weather": weather_desc
-        })
+        lat = request.args.get('lat')
+        lon = request.args.get('lon')
+        city = request.args.get('city')
+
+        if city:
+            weather_desc = get_weather_by_city(city)
+            return jsonify({
+                "location": city.title(),
+                "latitude": None,
+                "longitude": None,
+                "weather": weather_desc
+            })
+
+        data = get_weather_details(lat, lon, OPENWEATHER_API_KEY)
+        return jsonify(data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

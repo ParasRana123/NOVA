@@ -25,9 +25,36 @@ export async function fetchHealth() {
   }
 }
 
-export async function fetchWeather() {
+// Get client browser/device coordinates via HTML5 Geolocation API
+export function getClientCoordinates() {
+  return new Promise((resolve) => {
+    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          resolve({
+            lat: pos.coords.latitude,
+            lon: pos.coords.longitude
+          });
+        },
+        (err) => {
+          console.info('Client GPS notice (using IP fallback):', err.message);
+          resolve(null);
+        },
+        { timeout: 7000, enableHighAccuracy: false }
+      );
+    } else {
+      resolve(null);
+    }
+  });
+}
+
+export async function fetchWeather(lat = null, lon = null) {
   try {
-    const res = await fetch(`${API_BASE_URL}/weather`);
+    let url = `${API_BASE_URL}/weather`;
+    if (lat && lon) {
+      url += `?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`;
+    }
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`Weather error: ${res.statusText}`);
     return await res.json();
   } catch (error) {
