@@ -1,0 +1,33 @@
+To ensure your email is professional and effective, choose the template that best fits your situation.
+### Option 1: Standard (Best for most situations)
+**Subject:** Sick Leave - [Your Name] - [Date]
+Dear [Manager's Name],
+Please accept this email as notification that I am unable to come into work today, Monday, [Date], due to illness.
+I plan to monitor my email periodically, but I may be slower to respond than usual. If anything urgent arises, please feel free to reach out to [Colleague's Name] or contact me via mobile.
+I hope to be back in the office by [Tuesday/Date]. Thank you for understanding.
+Best regards,
+[Your Name]
+***
+### Option 2: Short & Direct (Best for quick notification)
+**Subject:** Absence Today: [Your Name] - [Date]
+Hi [Manager's Name],
+I am writing to let you know that I am feeling unwell today, Monday, [Date], and will be taking a sick day.
+I will keep you updated on my status regarding tomorrow. Thank you for your support.
+Best,
+[Your Name]
+***
+### Option 3: If you have urgent deadlines
+**Subject:** Sick Leave - [Your Name] - [Date]
+Dear [Manager's Name],
+Unfortunately, I have come down with an illness and will be unable to work today, Monday, [Date].
+Regarding my current projects:
+*   **[Project Name]:** I have uploaded the latest files to [Shared Drive/Platform].
+*   **[Meeting Name]:** I have asked [Colleague's Name] to cover this for me.
+I apologize for any inconvenience this may cause and will be back as soon as I am recovered. Thank you for your flexibility.
+Best regards,
+[Your Name]
+***
+### 3 Tips for Sending a Sick Leave Email:
+1.  **Send it early:** Aim to send the email as soon as you know you won't be able to make it in, ideally at least an hour before your scheduled start time.
+2.  **Keep it brief:** You are not legally required to provide specific medical details. "Unwell" or "illness" is sufficient.
+3.  **Check your company policy:** If your company uses a specific HR portal (like Workday or BambooHR) to log leave, ensure you submit your request there in addition to sending the email.

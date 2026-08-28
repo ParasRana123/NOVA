@@ -43,7 +43,7 @@ except ImportError:
 CHATLOG_PATH = DATA_DIR / "chatlog.json"
 TOKEN_PICKLE_PATH = BASE_DIR / "token.pickle"
 CREDENTIALS_PATH = BASE_DIR / "credentials.json"
-GENERATED_CONTENT_PATH = BASE_DIR / "generated_content.txt"
+GENERATED_CONTENT_PATH = BASE_DIR / "backend" / "generated_content.txt"
 
 # API Keys (Loaded from environment variables or .env file)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")

@@ -3,8 +3,15 @@ from tkinter import filedialog, Label, Button, Text, Scrollbar, VERTICAL, END, D
 from threading import Thread
 import time
 import json
+import re
 import sys
+from pathlib import Path
 from PIL import Image, ImageSequence, ImageTk
+
+# Ensure root directory is on python search path
+BASE_DIR = Path(__file__).resolve().parent.parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
 
 # Import centralized services from modular backend
 from backend.config import CHATLOG_PATH, OPENWEATHER_API_KEY
@@ -12,7 +19,7 @@ from backend.speech_service import speak, default_speech_service
 from backend.weather_service import get_location_by_ip, get_weather
 from backend.ai_service import chat as ai_chat, generate_content
 from backend.vision_service import analyze_image as gemini_analyze_image
-from backend.todo_service import todomain
+from backend.todo_service import handle_todo_command
 from backend.reminder_service import reminder
 from backend.os_service import (
     handle_keyboard_action,
@@ -184,89 +191,85 @@ def stop_response():
     global speak_enabled
     speak_enabled = False
     default_speech_service.stop()
-    output_label.config(text="NOVA: Speech stopped.")
 
 def display_text():
-    global speak_enabled
+    """Trigger processing of typed text."""
+    global stop_flag, speak_enabled
     speak_enabled = True
-
+    stop_flag = False
     user_text = input_box.get()
-    if user_text.strip():
-        input_box.delete(0, tk.END)
-        Thread(target=get_response, args=(user_text,), daemon=True).start()
-    else:
-        output_label.config(text="NOVA: Please enter something!")
+    input_box.delete(0, tk.END)
+    Thread(target=get_response, args=(user_text,)).start()
 
 def copy_to_clipboard():
-    text_to_copy = output_label.cget("text")
-    root.clipboard_clear()
-    root.clipboard_append(text_to_copy)
-    root.update()
+    """Copy current response text to clipboard."""
+    try:
+        response_content = response_text.get("1.0", tk.END).strip()
+        if response_content:
+            root.clipboard_clear()
+            root.clipboard_append(response_content)
+            output_label.config(text="Copied to clipboard!")
+            root.after(2000, lambda: output_label.config(text=""))
+    except Exception as e:
+        output_label.config(text=f"Error: {e}")
 
 def display_chat():
-    """Load and render chat history in GUI."""
+    """Display past chat history from chatlog.json in the UI."""
     try:
         if CHATLOG_PATH.exists():
-            with open(CHATLOG_PATH, "r", encoding="utf-8") as file:
-                chat_log = json.load(file)
-            chat_hist.config(state="normal")
-            chat_hist.delete(1.0, tk.END)
-
+            with open(CHATLOG_PATH, "r", encoding="utf-8") as f:
+                chat_data = json.load(f)
             formatted_chat = ""
-            for entry in chat_log:
-                role = entry.get("role", "Unknown").capitalize()
-                content = entry.get("content", "No content provided")
+            for entry in chat_data:
+                role = entry.get("role", "user").capitalize()
+                content = entry.get("content", "")
                 formatted_chat += f"{role}: {content}\n\n"
 
+            chat_hist.delete("1.0", tk.END)
             chat_hist.insert(tk.END, formatted_chat)
-            chat_hist.config(state="disabled")
         else:
-            chat_hist.config(state="normal")
-            chat_hist.delete(1.0, tk.END)
-            chat_hist.insert(tk.END, "No chat logs found.")
-            chat_hist.config(state="disabled")
+            chat_hist.insert(tk.END, "No chat history found.")
     except Exception as e:
-        chat_hist.config(state="normal")
-        chat_hist.delete(1.0, tk.END)
-        chat_hist.insert(tk.END, f"Error loading chat log: {e}")
-        chat_hist.config(state="disabled")
+        chat_hist.insert(tk.END, f"Error reading chat log: {e}")
+
+selected_image_path = None
 
 def upload_and_display_image():
+    """Handle image upload for vision analysis."""
+    global selected_image_path
     file_path = filedialog.askopenfilename(
-        filetypes=[("Image Files", "*.jpg;*.jpeg;*.png")]
+        title="Select an Image",
+        filetypes=[("Image files", "*.jpg *.jpeg *.png *.bmp *.gif")]
     )
     if file_path:
-        img = Image.open(file_path)
-        img = img.resize((100, 100), Image.Resampling.LANCZOS)
-        img_tk = ImageTk.PhotoImage(img)
-        img_label.config(image=img_tk)
-        img_label.image = img_tk
-        img_label.file_path = file_path
+        selected_image_path = file_path
+        try:
+            uploaded_image = Image.open(file_path).resize((200, 100))
+            img_photo = ImageTk.PhotoImage(uploaded_image)
+            img_label.config(image=img_photo)
+            img_label.image = img_photo
+        except Exception as e:
+            output_label.config(text=f"Image preview error: {e}")
 
 def analyze_uploaded_image():
-    if not hasattr(img_label, 'file_path') or not img_label.file_path:
-        response_text.config(state=NORMAL)
-        response_text.delete(1.0, END)
-        response_text.insert(END, "Please upload an image first.")
-        response_text.config(state=DISABLED)
+    """Run Gemini Vision analysis on selected image."""
+    global selected_image_path
+    if not selected_image_path:
+        output_label.config(text="Please upload an image first.")
         return
 
-    def _async_analyze():
+    output_label.config(text="Analyzing image...")
+    def run_analysis():
+        analysis_result = gemini_analyze_image(selected_image_path)
+        output_label.config(text="Analysis complete.")
         response_text.config(state=NORMAL)
-        response_text.delete(1.0, END)
-        response_text.insert(END, "Analyzing image with Gemini Vision...")
+        response_text.delete("1.0", END)
+        response_text.insert(END, analysis_result)
         response_text.config(state=DISABLED)
 
-        analysis = gemini_analyze_image(img_label.file_path)
-        response_text.config(state=NORMAL)
-        response_text.delete(1.0, END)
-        response_text.insert(END, analysis)
-        response_text.config(state=DISABLED)
-        speak("Image analysis complete.")
+    Thread(target=run_analysis, daemon=True).start()
 
-    Thread(target=_async_analyze, daemon=True).start()
-
-# Weather & Location Initialization
+# Load Weather & Location Telemetry
 location, latitude, longitude = get_location_by_ip()
 weather_data = get_weather(latitude, longitude, OPENWEATHER_API_KEY)
 
@@ -304,16 +307,31 @@ output_label = tk.Label(
 )
 output_label.place(x=10, y=120, anchor="nw")
 
-# Siri GIF Animation
-gif_path = "Sirifinal.gif"
-try:
-    image = Image.open(gif_path)
-    gif_width = int(root.winfo_screenwidth() * 0.5)
-    gif_height = int(root.winfo_screenheight() * 0.9)
-    frames = [
-        ImageTk.PhotoImage(frame.resize((gif_width, gif_height), Image.Resampling.LANCZOS))
-        for frame in ImageSequence.Iterator(image)
+# Helper to find assets in frontend or public folders
+def get_asset_path(filename: str) -> Path:
+    candidates = [
+        BASE_DIR / "frontend" / filename,
+        BASE_DIR / "frontend" / "public" / filename,
+        BASE_DIR / filename
     ]
+    for p in candidates:
+        if p.exists():
+            return p
+    return candidates[0]
+
+# Siri GIF Animation
+gif_path = get_asset_path("Sirifinal.gif")
+try:
+    if gif_path.exists():
+        image = Image.open(str(gif_path))
+        gif_width = int(root.winfo_screenwidth() * 0.5)
+        gif_height = int(root.winfo_screenheight() * 0.9)
+        frames = [
+            ImageTk.PhotoImage(frame.resize((gif_width, gif_height), Image.Resampling.LANCZOS))
+            for frame in ImageSequence.Iterator(image)
+        ]
+    else:
+        frames = []
 except Exception as e:
     print(f"GIF Load warning: {e}")
     frames = []
@@ -362,11 +380,13 @@ analyze_button.place(x=1320, y=850)
 
 # Weather & Time Widgets
 try:
-    weather_img = Image.open("weather.jpg").resize((35, 35))
-    weather_photo = ImageTk.PhotoImage(weather_img)
-    weather_button = tk.Button(root, image=weather_photo, bg="black", borderwidth=0, highlightthickness=0)
-    weather_button.image = weather_photo
-    weather_button.place(x=820, y=235)
+    weather_img_path = get_asset_path("weather.jpg")
+    if weather_img_path.exists():
+        weather_img = Image.open(str(weather_img_path)).resize((35, 35))
+        weather_photo = ImageTk.PhotoImage(weather_img)
+        weather_button = tk.Button(root, image=weather_photo, bg="black", borderwidth=0, highlightthickness=0)
+        weather_button.image = weather_photo
+        weather_button.place(x=820, y=235)
 except Exception:
     pass
 

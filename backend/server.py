@@ -1,13 +1,20 @@
 import os
+import sys
 import json
 import re
 from pathlib import Path
+
+# Ensure root directory is on python search path
+BASE_DIR = Path(__file__).resolve().parent.parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
 # Import NOVA backend services
-from backend.config import CHATLOG_PATH, OPENWEATHER_API_KEY, BASE_DIR
+from backend.config import CHATLOG_PATH, OPENWEATHER_API_KEY
 from backend.speech_service import speak, default_speech_service
 from backend.weather_service import get_location_by_ip, get_weather, get_weather_by_city
 from backend.ai_service import chat as ai_chat, generate_content
