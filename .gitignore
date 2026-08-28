@@ -15,6 +15,9 @@ dist/
 token.pickle
 credentials.json
 
+# Uploads & Temp Data
+Data/uploads/
+
 # Virtual Environments
 venv/
 env/
