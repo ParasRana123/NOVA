@@ -1,0 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;600;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --bg-base: #020406;
+  --bg-surface: #0a0e14;
+  --bg-panel: rgba(14, 18, 24, 0.85);
+  --bg-panel-hover: rgba(22, 28, 38, 0.9);
+  
+  --neon-green: #00E676;
+  --neon-green-dim: rgba(0, 230, 118, 0.15);
+  --neon-green-glow: 0 0 16px rgba(0, 230, 118, 0.35);
+  
+  --neon-blue: #007BFF;
+  --neon-blue-glow: 0 0 16px rgba(0, 123, 255, 0.45);
+  
+  --accent-cyan: #00e5ff;
+  --accent-purple: #9d4edd;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-neon: rgba(0, 230, 118, 0.3);
+
+  --text-main: #FFFFFF;
+  --text-muted: #8E9BAE;
+  --text-dim: #5A6678;
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-digital: 'Orbitron', monospace;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(0, 123, 255, 0.03) 0%, transparent 60%),
+    radial-gradient(circle at 10% 20%, rgba(0, 230, 118, 0.02) 0%, transparent 40%);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Cyber Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 230, 118, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-green);
+  box-shadow: var(--neon-green-glow);
+}
+
+/* Cyber Glow Buttons */
+button {
+  cursor: pointer;
+  border: none;
+  outline: none;
+  font-family: var(--font-sans);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+/* Text Selection */
+::selection {
+  background: rgba(0, 230, 118, 0.3);
+  color: #FFFFFF;
+}
+
+/* Utility Animations */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(0, 230, 118, 0.2), inset 0 0 15px rgba(0, 230, 118, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(0, 230, 118, 0.4), inset 0 0 25px rgba(0, 230, 118, 0.2);
+  }
+}
+
+@keyframes voiceWave {
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(1000%); }
+}

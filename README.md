@@ -2,93 +2,89 @@
 
 Forget cookie-cutter AI tools — **NOVA** is your all-in-one digital sidekick that takes control, handles your hustle, and gets things done *your way*.
 
-## Features
+## 🚀 Features
 
-- 🎛️ **OS Control**  
-  Control system-level operations like changing volume, muting, launching applications, and shutting down the system — all via natural commands.
+- 🎛️ **OS Control**: Control system-level operations like changing volume, muting, launching applications, and controlling playback.
+- 📅 **Smart Scheduling**: Set reminders, manage to-do lists, and sync with your Google Calendar for alerts.
+- 🧠 **Image Intelligence**: Upload images — NOVA analyzes and extracts insights using Google Gemini Vision.
+- 🔍 **Universal Smart Search**: Search Google, YouTube, or Amazon directly via commands.
+- 🎙️ **Multi-Mode Interaction**: Control NOVA using voice commands (Web Speech API / SpeechRecognition) or text input.
+- 🎵 **Multimedia & Telemetry**: Play music on YouTube, get real-time weather updates, and digital LED time display.
+- 💼 **Productivity on Autopilot**: Draft emails, applications, or documents using Groq Mixtral models.
 
-- 📅 **Smart Scheduling**  
-  Set reminders, manage to-do lists, and sync seamlessly with your Google Calendar for efficient scheduling and alerts.
+## 🛠️ Tech Stack
 
-- 🧠 **Image Intelligence**  
-  Upload or point to images — NOVA analyzes and decodes them instantly using powerful visual AI models.
+- **Frontend**: React (Vite, Vanilla CSS, Cyber & Glassmorphism Design System) & Tkinter Desktop GUI
+- **Backend**: Python (Modular architecture with Groq LLaMA-3, Google Gemini, Flask REST API)
+- **API Integration**: Google Calendar API v3, OpenWeatherMap API, ipinfo.io
+- **Voice Recognition**: Web Speech API & Python SpeechRecognition
+- **Speech Synthesis**: Browser Web Speech Synthesis & Python pyttsx3
+- **OS-Level Integration**: Python (`pyautogui`, `keyboard`, `AppOpener`, `subprocess`)
 
-- 🔍 **Universal Smart Search**  
-  Search anything from Google, YouTube, or Amazon directly via commands — no browser needed.
-
-- 🎙️ **Multi-Mode Interaction**  
-  Control NOVA using voice commands or classic text input — the choice is yours.
-
-- 🎵 **Multimedia Control**  
-  Play music, get weather updates, set moods — NOVA handles your vibes too.
-
-- 💼 **Productivity on Autopilot**  
-  Draft emails, write applications, or automate repetitive work — NOVA’s got your back.
-
-## Tech Stack
-
-- **Frontend**: Tkinter (Python GUI Library)
-- **AI/ML Integration**: Google Gemini
-- **API Integration**: Google Calendar API
-- **Voice Recognition**: Python SpeechRecognition
-- **OS-Level Integration**: Python (pyttsx3, pyautogui, os subprocess)
-- **Storage & Sync**: LocalStorage, Session Management
-
-## Project Structure
+## 📁 Project Structure
 
 ```bash
-├── test.py             # Main file combining all the code
-├── Data
-│   └── chalog.json     # Contains all the previous Chatlog
-├── image.py            # Image analysis AI-code
-├── jarvis.py           # Contains all multi-media tasks
-├── todo.py             # Contains all the calender code
-├── location.py         # Utility file for calender events
-├── requirements.txt    # Contains all the requirements
-└── README.md
+NOVA/
+├── backend/                # Modular Python backend package
+│   ├── ai_service.py       # Groq LLM & content generation
+│   ├── vision_service.py   # Gemini Vision analyzer
+│   ├── speech_service.py   # pyttsx3 speech synthesizer
+│   ├── calendar_service.py # Google Calendar integration
+│   ├── todo_service.py     # Task list & priority sorting
+│   ├── reminder_service.py # Natural language reminders & timers
+│   ├── os_service.py       # Keyboard actions & app management
+│   ├── weather_service.py  # Geolocation & weather telemetry
+│   ├── voice_listener.py   # Speech recognition loop
+│   └── config.py           # Centralized configuration & environment loader
+├── frontend/               # React Web Application (Vite)
+│   ├── src/
+│   │   ├── components/     # CommandBar, SiriVisualizer, WeatherClock, VisionAnalyzer, etc.
+│   │   ├── services/api.js # API bridge client
+│   │   ├── App.jsx         # Main cyber dashboard layout
+│   │   └── index.css       # Global design tokens & futuristic styling
+│   └── public/             # Visual assets (Sirifinal.gif, weather.jpg)
+├── server.py               # Flask REST API server bridging React to backend
+├── test.py                 # Tkinter Desktop GUI
+├── Data/
+│   └── chatlog.json        # Persistent chat history
+├── Tasks/                  # Priority task files
+├── .env.example            # Environment variables template
+└── requirements.txt        # Python dependencies
 ```
 
-## Installation
+## 💻 Quickstart Guide
 
-> **Note**: Python Version greater than 3.8 needed.
-
-1. **Clone the Repository**
-
+### 1. Environment Setup
 ```bash
-git clone [repository-url]
+# Clone the repository
+git clone https://github.com/ParasRana123/NOVA.git
 cd NOVA
-```
 
-2. **Create and activate python virtual environment**
-
-```bash
-conda create -p venv python==3.12.0 -y
-activate venv/
-```
-
-3. **Install all the requirements necessary for this project**
-
-```bash
+# Install Python requirements
 pip install -r requirements.txt
+
+# Configure your API keys in .env
+cp .env.example .env
 ```
 
-4. **Make an empty `Data` folder in root directory for Chatlogs and then create a file `chatlog.json` inside it**
-
+### 2. Start the Backend API Server
 ```bash
-mkdir Data
-cd Data
-echo. > chalog.json
+python server.py
 ```
+*API runs at `http://127.0.0.1:5000`*
 
-5. **Start the Python application**
+### 3. Start the React Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+*Web dashboard opens at `http://localhost:5173`*
 
+### 4. Running the Original Tkinter Desktop App (Optional)
 ```bash
 python test.py
 ```
 
-## Contributing
-
-We welcome contributions from the community! Whether you're interested in improving features, fixing bugs, or adding new functionality, your input is valuable. Feel free to reach out to us with your ideas and suggestions.
-
-## License
-This project is licensed under the MIT License - see the LICENSE file for details.
+## 📜 License
+This project is licensed under the MIT License.
