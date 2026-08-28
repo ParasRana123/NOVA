@@ -2,14 +2,23 @@
 
 Forget cookie-cutter AI tools — **NOVA** is your all-in-one digital sidekick that takes control, handles your hustle, and gets things done *your way*.
 
+---
+
+### 🌐 Live Links
+
+- **Live Website**: [https://nova-inky-iota.vercel.app/](https://nova-inky-iota.vercel.app/)
+- **Live Demo Video**: [Watch Demo](https://res.cloudinary.com/d3ukbssg/video/upload/v1787560321/nova_record.mp4)
+
+---
+
 ## 🚀 Features
 
-- 🎛️ **OS Control**: System-level operations like volume adjustments, muting, application launching, and playback controls.
+- 🎛️ **OS Control**: System-level operations like volume adjustments, muting, application launching (WhatsApp, Paytm, LinkedIn, Spotify, YouTube, VS Code, Settings), and playback controls.
 - 📅 **Smart Scheduling**: Set reminders, manage to-do lists, priority categorizations, and sync with Google Calendar.
 - 🧠 **Image Intelligence**: Upload images — NOVA analyzes and extracts insights using Google Gemini Vision.
 - 🔍 **Universal Smart Search**: Search Google, YouTube, or Amazon directly via natural commands.
-- 🎙️ **Multi-Mode Interaction**: Control NOVA using voice commands (Web Speech API / SpeechRecognition) or text input.
-- 🎵 **Multimedia & Telemetry**: Play music on YouTube, get real-time weather updates, and digital LED time display.
+- 🎙️ **Multi-Mode Interaction**: Control NOVA using real-time streaming voice commands (Web Speech API / SpeechRecognition) or text input.
+- 🎵 **Multimedia & Telemetry**: Play music on YouTube, get real-time GPS weather updates, and digital LED time display.
 - 💼 **Productivity on Autopilot**: Draft emails, applications, or documents using Google Gemini fast models.
 
 ## 🛠️ Tech Stack
@@ -40,7 +49,7 @@ NOVA/
 ├── frontend/               # React Web Application (Vite)
 │   ├── src/
 │   │   ├── components/     # CommandBar, SiriVisualizer, WeatherClock, VisionAnalyzer, FormattedMarkdown, etc.
-│   │   ├── services/api.js # Dynamic API bridge client (supports VITE_API_URL)
+│   │   ├── services/api.js # Dynamic API bridge client (supports VITE_API_URL & GPS)
 │   │   ├── App.jsx         # Main cyber dashboard layout
 │   │   ├── App.css         # Component styling & typography
 │   │   └── index.css       # Global design tokens & futuristic styling
