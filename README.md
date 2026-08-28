@@ -3,28 +3,28 @@
 Forget cookie-cutter AI tools — **NOVA** is your all-in-one digital sidekick that takes control, handles your hustle, and gets things done *your way*.
 
 - **Live Website**: [https://nova-inky-iota.vercel.app/](https://nova-inky-iota.vercel.app/)
-- **Live Demo Video**: [Watch Demo](https://res.cloudinary.com/d3ukbssg/video/upload/v1787560321/nova_record.mp4)
+- **Live Demo Video**: [https://res.cloudinary.com/d3ukbssg/video/upload/v1787560321/nova_record.mp4](https://res.cloudinary.com/d3ukbssg/video/upload/v1787560321/nova_record.mp4)
 
 ---
 
-## 🚀 Features
+## Features
 
-- 🎛️ **OS Control**: System-level operations like volume adjustments, muting, application launching (WhatsApp, Paytm, LinkedIn, Spotify, YouTube, VS Code, Settings), and playback controls.
-- 📅 **Smart Scheduling**: Set reminders, manage to-do lists, priority categorizations, and sync with Google Calendar.
-- 🧠 **Image Intelligence**: Upload images — NOVA analyzes and extracts insights using Google Gemini Vision.
-- 🔍 **Universal Smart Search**: Search Google, YouTube, or Amazon directly via natural commands.
-- 🎙️ **Multi-Mode Interaction**: Control NOVA using real-time streaming voice commands (Web Speech API / SpeechRecognition) or text input.
-- 🎵 **Multimedia & Telemetry**: Play music on YouTube, get real-time GPS weather updates, and digital LED time display.
-- 💼 **Productivity on Autopilot**: Draft emails, applications, or documents using Google Gemini fast models.
+- **OS Control**: System-level operations like volume adjustments, muting, application launching (WhatsApp, Paytm, LinkedIn, Spotify, YouTube, VS Code, Settings), and playback controls.
+- **Smart Scheduling**: Set reminders, manage to-do lists, priority categorizations, and sync with Google Calendar.
+- **Image Intelligence**: Upload images — NOVA analyzes and extracts insights using Google Gemini Vision.
+- **Universal Smart Search**: Search Google, YouTube, or Amazon directly via natural commands.
+- **Multi-Mode Interaction**: Control NOVA using real-time streaming voice commands (Web Speech API / SpeechRecognition) or text input.
+- **Multimedia & Telemetry**: Play music on YouTube, get real-time GPS weather updates, and digital LED time display.
+- **Productivity on Autopilot**: Draft emails, applications, or documents using Google Gemini fast models.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Frontend**: React (Vite, Vanilla CSS, Cyber & Glassmorphism Design System)
 - **Backend**: Python (Modular architecture with Google Gemini, Flask REST API & Tkinter GUI)
 - **API Integration**: Google Gemini API, Google Calendar API v3, OpenWeatherMap API, ipinfo.io
 - **Deployment**: Vercel (Frontend SPA) & Render (Backend Web Service with Gunicorn)
 
-## 📁 Project Structure
+## Project Structure
 
 ```bash
 NOVA/
@@ -61,7 +61,7 @@ NOVA/
 
 ---
 
-## 🌐 Production Deployment Guide
+## Production Deployment Guide
 
 ### Part 1: Deploying the Backend on Render (Web Service)
 
@@ -102,7 +102,7 @@ NOVA/
 
 ---
 
-## 💻 Local Development Guide
+## Local Development Guide
 
 ### 1. Backend Server
 ```bash
@@ -130,5 +130,5 @@ npm run dev
 python backend/test.py
 ```
 
-## 📜 License
+## License
 This project is licensed under the MIT License.
