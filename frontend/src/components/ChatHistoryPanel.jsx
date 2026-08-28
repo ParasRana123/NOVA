@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import FormattedMarkdown from './FormattedMarkdown';
 
 export default function ChatHistoryPanel({ chatHistory, onRefreshHistory, isOpen, onClose }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -57,7 +58,7 @@ export default function ChatHistoryPanel({ chatHistory, onRefreshHistory, isOpen
                     <span className="role-tag">{isUser ? 'YOU' : 'NOVA'}</span>
                   </div>
                   <div className="bubble-body">
-                    {entry.content}
+                    <FormattedMarkdown content={entry.content} />
                   </div>
                 </div>
               );

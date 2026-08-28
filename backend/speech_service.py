@@ -1,3 +1,4 @@
+import re
 import threading
 from typing import Optional
 
@@ -5,6 +6,15 @@ try:
     import pyttsx3
 except ImportError:
     pyttsx3 = None
+
+def clean_speech_text(text: str) -> str:
+    """Strip markdown symbols (#, *, _, `, ~, ---) so TTS doesn't vocalize syntax."""
+    if not text:
+        return ""
+    clean = re.sub(r'[*#_`~]', '', text)
+    clean = re.sub(r'^[•\-\+]\s+', '', clean, flags=re.MULTILINE)
+    clean = re.sub(r'\s+', ' ', clean).strip()
+    return clean
 
 class SpeechService:
     def __init__(self, rate: int = 220, voice_index: int = 1):
@@ -35,11 +45,12 @@ class SpeechService:
         if not self.speak_enabled or not text:
             return
 
-        print(f"[NOVA Voice]: {text}")
+        speech_text = clean_speech_text(text)
+        print(f"[NOVA Voice]: {speech_text}")
         if block:
-            self._speak_internal(text)
+            self._speak_internal(speech_text)
         else:
-            threading.Thread(target=self._speak_internal, args=(text,), daemon=True).start()
+            threading.Thread(target=self._speak_internal, args=(speech_text,), daemon=True).start()
 
     def _speak_internal(self, text: str):
         with self._lock:

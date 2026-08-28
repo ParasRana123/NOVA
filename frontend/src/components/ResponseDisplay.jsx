@@ -1,4 +1,5 @@
 import React from 'react';
+import FormattedMarkdown from './FormattedMarkdown';
 
 export default function ResponseDisplay({ latestQuery, latestResponse, commandType, isProcessing }) {
   return (
@@ -31,11 +32,7 @@ export default function ResponseDisplay({ latestQuery, latestResponse, commandTy
           ) : (
             <div className="response-text-content">
               {latestResponse ? (
-                latestResponse.split('\n').map((line, idx) => (
-                  <p key={idx} className="response-line">
-                    {line}
-                  </p>
-                ))
+                <FormattedMarkdown content={latestResponse} />
               ) : (
                 <p className="placeholder-text">
                   Welcome to NOVA. Type a command or press the microphone to interact.

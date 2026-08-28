@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { analyzeImage } from '../services/api';
+import FormattedMarkdown from './FormattedMarkdown';
 
 export default function VisionAnalyzer({ onSpeakingTrigger }) {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -89,9 +90,7 @@ export default function VisionAnalyzer({ onSpeakingTrigger }) {
         <div className="vision-result-container">
           <div className="result-header">Vision Analysis:</div>
           <div className="result-body">
-            {analysisResult.split('\n').map((line, idx) => (
-              <p key={idx} className="result-line">{line}</p>
-            ))}
+            <FormattedMarkdown content={analysisResult} />
           </div>
         </div>
       )}

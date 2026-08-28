@@ -1,6 +1,7 @@
 import os
 import base64
 import requests
+import re
 from typing import Optional, Union
 from pathlib import Path
 
@@ -12,12 +13,23 @@ except ImportError:
 from backend.config import GEMINI_API_KEY, GEMINI_MODEL
 
 DEFAULT_VISION_PROMPT = """
-You are an Image Analyzer with expertise in identifying and understanding the contents of any given image. 
-Provide a clear, structured analysis with:
-1. Description of key objects, people, and scene elements (keep it concise).
-2. Contextual insights or potential practical applications.
-3. Suggestions for enhancement or further utilization.
+You are a design and visual expert. Analyze the provided image in a refined, human, natural editorial style (not robotic).
+Structure your response into clean, organic sections:
+1. Visual Overview: subjects, environment, color palette, and composition.
+2. Practical Context: significance, use-case, and artistic intent.
+3. Design Recommendations: creative enhancements or optimization tips.
+
+Write in a fluent, professional human voice without repetitive robotic phrasing.
 """
+
+def clean_vision_response(text: str) -> str:
+    """Format and clean any trailing raw symbols."""
+    if not text:
+        return ""
+    # Strip any dangling incomplete markdown markers at end of text
+    lines = text.split('\n')
+    cleaned_lines = [line.rstrip() for line in lines if line.strip() or line == '']
+    return '\n'.join(cleaned_lines).strip()
 
 class VisionService:
     def __init__(self, api_key: str = GEMINI_API_KEY, model_name: str = GEMINI_MODEL):
@@ -67,7 +79,7 @@ class VisionService:
                     }
                     response = self.model.generate_content([analysis_prompt, image_part])
                     if response and hasattr(response, 'text') and response.text:
-                        return response.text
+                        return clean_vision_response(response.text)
                 except Exception as e:
                     print(f"[VisionService] SDK call failed, trying REST fallback: {e}")
 
@@ -104,7 +116,7 @@ class VisionService:
                 if candidates and "content" in candidates[0]:
                     parts = candidates[0]["content"].get("parts", [])
                     if parts and "text" in parts[0]:
-                        return parts[0]["text"]
+                        return clean_vision_response(parts[0]["text"])
                 return "No analysis returned from Gemini."
             else:
                 err = data.get("error", {}).get("message", res.text)
