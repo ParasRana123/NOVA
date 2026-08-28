@@ -1,5 +1,8 @@
+import os
+import sys
 import webbrowser
 import subprocess
+import re
 from typing import Optional
 
 try:
@@ -16,6 +19,34 @@ try:
     from pywhatkit import playonyt
 except ImportError:
     playonyt = None
+
+# Known Windows app protocol schemes and executable aliases
+WINDOWS_APP_PROTOCOLS = {
+    "whatsapp": ["start whatsapp:", "start whatsapp", "https://web.whatsapp.com"],
+    "calculator": ["calc.exe", "start calc:"],
+    "calc": ["calc.exe", "start calc:"],
+    "notepad": ["notepad.exe"],
+    "settings": ["start ms-settings:"],
+    "chrome": ["start chrome", "chrome.exe"],
+    "google chrome": ["start chrome", "chrome.exe"],
+    "edge": ["start msedge", "msedge.exe"],
+    "spotify": ["start spotify:", "spotify.exe"],
+    "camera": ["start microsoft.windows.camera:"],
+    "explorer": ["start explorer"],
+    "file explorer": ["start explorer"],
+    "files": ["start explorer"],
+    "cmd": ["cmd.exe"],
+    "command prompt": ["cmd.exe"],
+    "terminal": ["powershell.exe", "wt.exe", "cmd.exe"],
+    "powershell": ["powershell.exe"],
+    "vs code": ["code", "start code"],
+    "vscode": ["code", "start code"],
+    "word": ["start winword"],
+    "excel": ["start excel"],
+    "powerpoint": ["start powerpnt"],
+    "paint": ["mspaint.exe"],
+    "task manager": ["taskmgr.exe"],
+}
 
 def mute():
     if keyboard:
@@ -65,75 +96,119 @@ def type_message(message: str):
 
 def handle_keyboard_action(command: str) -> bool:
     """Respond to keyboard action commands."""
-    cmd = command.lower()
-    if "increase" in cmd or "volume up" in cmd:
+    cmd = command.lower().strip()
+    if any(k in cmd for k in ["increase", "volume up", "raise volume", "louder"]):
         volume_up()
-    elif "decrease" in cmd or "volume down" in cmd:
+    elif any(k in cmd for k in ["decrease", "volume down", "lower volume", "quieter"]):
         volume_down()
-    elif "mute" in cmd:
-        mute()
     elif "unmute" in cmd:
         unmute()
-    elif "play" in cmd or "pause" in cmd:
+    elif "mute" in cmd:
+        mute()
+    elif any(k in cmd for k in ["play", "pause", "resume"]):
         play_pause()
-    elif "next track" in cmd:
+    elif any(k in cmd for k in ["next track", "next song", "skip track"]):
         next_track()
-    elif "previous track" in cmd:
+    elif any(k in cmd for k in ["previous track", "previous song"]):
         previous_track()
-    elif "screenshot" in cmd:
+    elif any(k in cmd for k in ["screenshot", "capture screen"]):
         take_screenshot()
     elif "find" in cmd:
         find_text()
-    elif "type" in cmd:
-        type_message("NOVA")
-    elif "close window" in cmd:
+    elif cmd.startswith("type "):
+        type_message(cmd.replace("type ", "", 1))
+    elif "close window" in cmd or "close active window" in cmd:
         close_active_window()
     else:
         return False
     return True
 
 def open_application(app_name: str) -> bool:
-    """Open desktop application using AppOpener."""
-    if appopen and app_name:
+    """Open desktop application using protocol schemes, AppOpener, and executables."""
+    clean_app = app_name.lower().strip().rstrip(".,!?")
+    if not clean_app:
+        return False
+
+    # Check known Windows protocols
+    if clean_app in WINDOWS_APP_PROTOCOLS:
+        commands = WINDOWS_APP_PROTOCOLS[clean_app]
+        for cmd in commands:
+            try:
+                if cmd.startswith("http"):
+                    webbrowser.open(cmd)
+                    return True
+                elif cmd.startswith("start "):
+                    os.system(cmd)
+                    return True
+                else:
+                    subprocess.Popen(cmd, shell=True)
+                    return True
+            except Exception:
+                continue
+
+    # Try AppOpener
+    if appopen:
         try:
-            appopen(app_name.strip(), match_closest=True, output=True, throw_error=False)
+            appopen(clean_app, match_closest=True, output=True, throw_error=False)
             return True
-        except Exception as e:
-            print(f"[OSService] Error opening {app_name}: {e}")
-    return False
+        except Exception:
+            pass
+
+    # Try standard start command
+    try:
+        os.system(f"start {clean_app}")
+        return True
+    except Exception as e:
+        print(f"[OSService] Error launching {clean_app}: {e}")
+        return False
 
 def close_application(app_name: str) -> bool:
-    """Close desktop application using AppOpener."""
-    if appclose and app_name:
+    """Close desktop application using AppOpener and taskkill."""
+    clean_app = app_name.lower().strip().rstrip(".,!?")
+    if not clean_app:
+        return False
+
+    # Try AppOpener
+    if appclose:
         try:
-            appclose(app_name.strip(), match_closest=True, output=True, throw_error=False)
+            appclose(clean_app, match_closest=True, output=True, throw_error=False)
             return True
-        except Exception as e:
-            print(f"[OSService] Error closing {app_name}: {e}")
-    return False
+        except Exception:
+            pass
+
+    # Try taskkill
+    try:
+        os.system(f"taskkill /f /im {clean_app}.exe 2>nul")
+        return True
+    except Exception as e:
+        print(f"[OSService] Error closing {clean_app}: {e}")
+        return False
 
 def search_youtube(query: str, play_first: bool = False):
     """Play directly on YouTube or open search results."""
-    query = query.strip()
-    if not query:
+    clean_query = query.strip().rstrip(".,!?")
+    if not clean_query:
         return
     if play_first and playonyt:
-        playonyt(query)
-    else:
-        search_url = f"https://www.youtube.com/results?search_query={query}"
-        webbrowser.open(search_url)
+        try:
+            playonyt(clean_query)
+            return
+        except Exception:
+            pass
+    search_url = f"https://www.youtube.com/results?search_query={clean_query}"
+    webbrowser.open(search_url)
 
 def search_google(query: str):
     """Open Google search in the default web browser."""
-    query = query.strip()
-    if query:
-        webbrowser.open(f"https://www.google.com/search?q={query}")
+    clean_query = query.strip().rstrip(".,!?")
+    if clean_query:
+        webbrowser.open(f"https://www.google.com/search?q={clean_query}")
 
 def search_amazon(query: str):
     """Open Amazon product search in the default web browser."""
-    query = query.strip()
-    if query:
-        webbrowser.open(f"https://www.amazon.com/s?k={query}")
+    clean_query = query.strip().rstrip(".,!?")
+    if clean_query:
+        webbrowser.open(f"https://www.amazon.com/s?k={clean_query}")
 
 def open_file_in_notepad(file_path: str):
     """Open a text file in Notepad."""
@@ -141,3 +216,46 @@ def open_file_in_notepad(file_path: str):
         subprocess.Popen(["notepad.exe", str(file_path)])
     except Exception as e:
         print(f"[OSService] Error launching notepad: {e}")
+
+def get_supported_commands_guide() -> str:
+    """Return a comprehensive guide of all supported commands."""
+    return """✨ **NOVA Supported Commands Guide**
+
+🎛️ **App & OS Control:**
+• `Open <app>` (e.g. *Open WhatsApp*, *Open Chrome*, *Open Notepad*, *Open Calculator*, *Open Spotify*, *Open VS Code*)
+• `Close <app>` (e.g. *Close WhatsApp*, *Close Chrome*, *Close Notepad*)
+• `Close window` *(Alt+F4)*
+• `Take a screenshot` / `Screenshot`
+• `Find` *(Ctrl+F)*
+
+🔊 **Media & Volume:**
+• `Play <song> on YouTube` / `Play music`
+• `Increase volume` / `Volume up` / `Louder`
+• `Decrease volume` / `Volume down` / `Quieter`
+• `Mute` / `Unmute`
+• `Pause` / `Resume`
+• `Next track` / `Previous track`
+
+🔍 **Smart Search:**
+• `Google <query>` or `Search Google for <topic>`
+• `YouTube <query>` or `Search YouTube for <topic>`
+• `Amazon <query>` or `Search Amazon for <product>`
+
+📅 **Tasks, Calendar & Reminders:**
+• `Add <task> to my list` / `Add to my todo list <task>`
+• `Show my tasks` / `Get tasks` / `List tasks`
+• `Remove <task> from my list`
+• `Sort tasks` / `Show high priority tasks`
+• `Calendar` / `Show upcoming events`
+• `Remind me to <task> at <time>` (e.g. *Remind me to call mom at 5:00 pm*)
+
+✍️ **Content & Productivity:**
+• `Draft email for <topic>` / `Write email about <topic>` / `Email <topic>`
+• `Write application for <topic>` / `Content <topic>` *(Generates and opens in Notepad)*
+
+⛅ **Live Telemetry & Info:**
+• `Weather in <city>` / `What is the weather?`
+• `What time is it?` / `What is the date?`
+
+🧠 **General Intelligence (Google Gemini):**
+• Ask any question, coding problem, explanation, translation, or conversation!"""

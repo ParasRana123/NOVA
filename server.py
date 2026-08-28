@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 # Import NOVA backend services
 from backend.config import CHATLOG_PATH, OPENWEATHER_API_KEY, BASE_DIR
 from backend.speech_service import speak, default_speech_service
-from backend.weather_service import get_location_by_ip, get_weather
+from backend.weather_service import get_location_by_ip, get_weather, get_weather_by_city
 from backend.ai_service import chat as ai_chat, generate_content
 from backend.vision_service import analyze_image as gemini_analyze_image
 from backend.todo_service import handle_todo_command
@@ -20,11 +20,12 @@ from backend.os_service import (
     close_application,
     search_youtube,
     search_google,
-    search_amazon
+    search_amazon,
+    get_supported_commands_guide
 )
 
 app = Flask(__name__)
-CORS(app)  # Enable Cross-Origin Resource Sharing for React frontend
+CORS(app)
 
 UPLOAD_FOLDER = BASE_DIR / "Data" / "uploads"
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
@@ -67,7 +68,7 @@ def get_chat_history():
 
 @app.route('/api/chat', methods=['POST'])
 def process_chat():
-    """Process voice or text prompt through NOVA's command router and Gemini LLM."""
+    """Process voice or text prompt through NOVA's full command suite and Gemini LLM."""
     data = request.get_json() or {}
     user_text = data.get("query", "").strip()
     voice_enabled = data.get("speak", True)
@@ -75,90 +76,122 @@ def process_chat():
     if not user_text:
         return jsonify({"error": "Empty query"}), 400
 
-    cmd = user_text.lower().strip()
+    # Normalize command (strip punctuation, lower-case, remove conversational prefixes like "hey nova", "please")
+    cmd = user_text.lower().strip().rstrip(".,!?")
+    clean_cmd = re.sub(r'^(?:hey\s+nova,?\s*|nova,?\s*|please\s+|can\s+you\s+)', '', cmd).strip()
     command_type = "general_chat"
     response_text = ""
 
     try:
-        # 1. YouTube Playback intent
-        yt_match = re.search(r'^(?:play\s+(.+?)\s+on\s+youtube|play\s+(?:song|music|video)\s+(.+))$', cmd)
-        if yt_match:
-            command_type = "multimedia"
-            query = (yt_match.group(1) or yt_match.group(2)).strip()
-            search_youtube(query, play_first=True)
-            response_text = f"Playing '{query}' on YouTube."
+        # 0. Help / Supported Commands
+        if re.search(r'^(?:help|what\s+commands\s+do\s+you\s+support|what\s+can\s+you\s+do|commands\s+list|list\s+of\s+commands)$', clean_cmd):
+            command_type = "help"
+            response_text = get_supported_commands_guide()
 
-        # 2. Explicit Web Search intents
-        elif re.search(r'^(?:search\s+(?:on\s+)?youtube\s+(?:for\s+)?|youtube\s+search\s+(?:for\s+)?)(.+)$', cmd):
-            m = re.search(r'^(?:search\s+(?:on\s+)?youtube\s+(?:for\s+)?|youtube\s+search\s+(?:for\s+)?)(.+)$', cmd)
-            command_type = "search"
+        # 1. Application Opening (e.g. "open whatsapp", "launch chrome", "open notepad")
+        elif re.search(r'^(?:open|launch|start)\s+([a-zA-Z0-9\s\.\-_]+)$', clean_cmd):
+            m = re.search(r'^(?:open|launch|start)\s+([a-zA-Z0-9\s\.\-_]+)$', clean_cmd)
+            app_name = m.group(1).strip()
+            command_type = "app_management"
+            success = open_application(app_name)
+            response_text = f"Opening {app_name} on your device." if success else f"Attempted to open {app_name}."
+
+        # 2. Application Closing (e.g. "close whatsapp", "kill chrome")
+        elif re.search(r'^(?:close|quit|kill|stop)\s+([a-zA-Z0-9\s\.\-_]+)$', clean_cmd) and "window" not in clean_cmd:
+            m = re.search(r'^(?:close|quit|kill|stop)\s+([a-zA-Z0-9\s\.\-_]+)$', clean_cmd)
+            app_name = m.group(1).strip()
+            command_type = "app_management"
+            close_application(app_name)
+            response_text = f"Closed {app_name}."
+
+        # 3. YouTube Music & Playback
+        elif re.search(r'^(?:play\s+(.+?)\s+on\s+youtube|play\s+(?:song|music|video)\s+(.+)|play\s+(.+))$', clean_cmd):
+            m = re.search(r'^(?:play\s+(.+?)\s+on\s+youtube|play\s+(?:song|music|video)\s+(.+)|play\s+(.+))$', clean_cmd)
+            query = (m.group(1) or m.group(2) or m.group(3)).strip()
+            if query and query not in ["music", "song", "pause", "resume"]:
+                command_type = "multimedia"
+                search_youtube(query, play_first=True)
+                response_text = f"Playing '{query}' on YouTube."
+
+        # 4. Explicit Web Searches (Google, YouTube, Amazon)
+        elif re.search(r'^(?:search\s+(?:on\s+)?youtube\s+(?:for\s+)?|youtube\s+search\s+(?:for\s+)?|youtube\s+)(.+)$', clean_cmd):
+            m = re.search(r'^(?:search\s+(?:on\s+)?youtube\s+(?:for\s+)?|youtube\s+search\s+(?:for\s+)?|youtube\s+)(.+)$', clean_cmd)
             query = m.group(1).strip()
+            command_type = "search"
             search_youtube(query)
             response_text = f"Searched YouTube for: {query}"
 
-        elif re.search(r'^(?:search\s+(?:on\s+)?google\s+(?:for\s+)?|google\s+search\s+(?:for\s+)?)(.+)$', cmd):
-            m = re.search(r'^(?:search\s+(?:on\s+)?google\s+(?:for\s+)?|google\s+search\s+(?:for\s+)?)(.+)$', cmd)
-            command_type = "search"
+        elif re.search(r'^(?:search\s+(?:on\s+)?google\s+(?:for\s+)?|google\s+search\s+(?:for\s+)?|google\s+)(.+)$', clean_cmd):
+            m = re.search(r'^(?:search\s+(?:on\s+)?google\s+(?:for\s+)?|google\s+search\s+(?:for\s+)?|google\s+)(.+)$', clean_cmd)
             query = m.group(1).strip()
+            command_type = "search"
             search_google(query)
             response_text = f"Searched Google for: {query}"
 
-        elif re.search(r'^(?:search\s+(?:on\s+)?amazon\s+(?:for\s+)?|amazon\s+search\s+(?:for\s+)?)(.+)$', cmd):
-            m = re.search(r'^(?:search\s+(?:on\s+)?amazon\s+(?:for\s+)?|amazon\s+search\s+(?:for\s+)?)(.+)$', cmd)
+        elif re.search(r'^(?:search\s+(?:on\s+)?amazon\s+(?:for\s+)?|amazon\s+search\s+(?:for\s+)?|amazon\s+|buy\s+(.+?)\s+on\s+amazon)(.+)?$', clean_cmd):
+            m = re.search(r'^(?:search\s+(?:on\s+)?amazon\s+(?:for\s+)?|amazon\s+search\s+(?:for\s+)?|amazon\s+|buy\s+(.+?)\s+on\s+amazon)(.+)?$', clean_cmd)
+            query = (m.group(1) or m.group(2) or "").strip()
             command_type = "search"
-            query = m.group(1).strip()
             search_amazon(query)
-            response_text = f"Searched Amazon for: {query}"
+            response_text = f"Searching Amazon for: {query}"
 
-        # 3. Content Drafting intent
-        elif re.search(r'^(?:draft|write|compose|generate)\s+(?:an?\s+)?(?:email|letter|application|document|content)\s+(?:about|for|on)\s+(.+)$', cmd):
-            m = re.search(r'^(?:draft|write|compose|generate)\s+(?:an?\s+)?(?:email|letter|application|document|content)\s+(?:about|for|on)\s+(.+)$', cmd)
-            command_type = "content_drafting"
-            topic = m.group(1).strip()
-            response_text = generate_content(topic, auto_open=True)
+        # 5. Content Drafting (Emails, Letters, Applications, Documents)
+        elif re.search(r'^(?:draft|write|compose|generate)\s+(?:an?\s+)?(?:email|letter|application|document|content)\s+(?:about|for|on)\s+(.+)$', clean_cmd) or clean_cmd.startswith("content ") or clean_cmd.startswith("email "):
+            topic = re.sub(r'^(?:draft|write|compose|generate)\s+(?:an?\s+)?(?:email|letter|application|document|content)\s+(?:about|for|on)\s+|^(?:content|email)\s+', '', clean_cmd).strip()
+            if topic:
+                command_type = "content_drafting"
+                response_text = generate_content(topic, auto_open=True)
 
-        # 4. Reminders
-        elif re.search(r'^(?:remind\s+me|set\s+(?:a\s+)?reminder)\b', cmd):
-            success, msg = reminder(user_text)
+        # 6. Reminders
+        elif re.search(r'^(?:remind\s+me|set\s+(?:a\s+)?reminder)\b', clean_cmd):
+            success, msg = reminder(clean_cmd)
             if success:
                 command_type = "reminder"
                 response_text = msg
 
-        # 5. To-Do & Calendar commands
+        # 7. To-Do, Priority Lists & Google Calendar
         if not response_text:
-            todo_res = handle_todo_command(cmd)
+            todo_res = handle_todo_command(clean_cmd)
             if todo_res:
                 command_type = "todo_calendar"
                 response_text = todo_res
 
-        # 6. Application management
-        if not response_text and re.search(r'^(?:open|launch)\s+([a-zA-Z0-9\s]+)$', cmd):
-            m = re.search(r'^(?:open|launch)\s+([a-zA-Z0-9\s]+)$', cmd)
-            app_name = m.group(1).strip()
-            command_type = "app_management"
-            open_application(app_name)
-            response_text = f"Opening {app_name}"
-
-        elif not response_text and re.search(r'^(?:close|quit|kill)\s+([a-zA-Z0-9\s]+)$', cmd):
-            m = re.search(r'^(?:close|quit|kill)\s+([a-zA-Z0-9\s]+)$', cmd)
-            app_name = m.group(1).strip()
-            command_type = "app_management"
-            close_application(app_name)
-            response_text = f"Closed application {app_name}"
-
-        # 7. OS Media / Keyboard macros
-        elif not response_text and re.search(r'^(?:(?:increase|decrease|mute|unmute)\s+volume|mute|unmute|pause|resume|next\s+track|previous\s+track|take\s+a?\s*screenshot|screenshot)$', cmd):
+        # 8. OS Media / Volume / Keyboard Macros
+        if not response_text and re.search(r'^(?:(?:increase|decrease|raise|lower|turn\s+up|turn\s+down|mute|unmute)\s+(?:volume|sound|audio)|mute|unmute|pause|resume|next\s+track|next\s+song|previous\s+track|previous\s+song|take\s+a?\s*screenshot|screenshot|find|close\s+window)$', clean_cmd):
             command_type = "os_control"
-            handle_keyboard_action(cmd)
-            response_text = f"Executed system command: {cmd}"
+            handle_keyboard_action(clean_cmd)
+            response_text = f"Executed system action: {clean_cmd}"
 
-        # 8. All other queries -> Full Google Gemini conversational intelligence!
+        # 9. Time & Date Telemetry
+        elif not response_text and re.search(r'^(?:what\s+time\s+is\s+it|what\s+is\s+the\s+time|current\s+time|time)$', clean_cmd):
+            import datetime
+            now = datetime.datetime.now()
+            command_type = "telemetry"
+            response_text = f"The current time is {now.strftime('%I:%M:%S %p')} on {now.strftime('%A, %B %d, %Y')}."
+
+        # 10. Direct Weather Query (e.g. "weather in Tokyo", "what is the weather")
+        elif not response_text and re.search(r'^(?:weather\s+in\s+([a-zA-Z\s]+)|what\s+is\s+the\s+weather|weather)$', clean_cmd):
+            m = re.search(r'^(?:weather\s+in\s+([a-zA-Z\s]+)|what\s+is\s+the\s+weather|weather)$', clean_cmd)
+            city = m.group(1).strip() if m and m.group(1) else ""
+            command_type = "weather"
+            if city:
+                response_text = get_weather_by_city(city)
+            else:
+                loc, lat, lon = get_location_by_ip()
+                response_text = get_weather(lat, lon, OPENWEATHER_API_KEY)
+
+        # 11. Exit / Quit
+        elif not response_text and re.search(r'^(?:goodbye|bye|sleep|exit|quit|that\'s\s+it)$', clean_cmd):
+            command_type = "system"
+            response_text = "Goodbye, Sir. Have a great day!"
+
+        # 12. Fallback to Google Gemini (Full General Intelligence)
         if not response_text:
             command_type = "ai_chat"
             response_text = ai_chat(user_text)
 
-        # Speak via desktop TTS if requested
-        if voice_enabled and response_text and command_type in ["ai_chat", "multimedia", "reminder"]:
+        # Spoken audio via TTS
+        if voice_enabled and response_text and command_type in ["ai_chat", "multimedia", "reminder", "app_management", "telemetry", "weather", "system"]:
             default_speech_service.speak(response_text, block=False)
 
         return jsonify({
@@ -186,7 +219,6 @@ def analyze_image_endpoint():
         save_path = Path(app.config['UPLOAD_FOLDER']) / filename
         file.save(str(save_path))
 
-        # Perform Gemini Vision analysis
         analysis_result = gemini_analyze_image(str(save_path))
         return jsonify({
             "filename": filename,

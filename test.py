@@ -56,86 +56,112 @@ def get_response(user_text: str):
 
     try:
         submit_button.config(text="Processing...", state="disabled")
-        cmd = user_text.strip().lower()
+        cmd = user_text.lower().strip().rstrip(".,!?")
+        clean_cmd = re.sub(r'^(?:hey\s+nova,?\s*|nova,?\s*|please\s+|can\s+you\s+)', '', cmd).strip()
         response = ""
 
-        # 1. YouTube Playback intent
-        yt_match = re.search(r'^(?:play\s+(.+?)\s+on\s+youtube|play\s+(?:song|music|video)\s+(.+))$', cmd)
-        if yt_match:
-            query = (yt_match.group(1) or yt_match.group(2)).strip()
-            search_youtube(query, play_first=True)
-            response = f"Playing '{query}' on YouTube."
+        # 0. Help / Supported Commands
+        if re.search(r'^(?:help|what\s+commands\s+do\s+you\s+support|what\s+can\s+you\s+do|commands\s+list|list\s+of\s+commands)$', clean_cmd):
+            from backend.os_service import get_supported_commands_guide
+            response = get_supported_commands_guide()
+
+        # 1. Application Opening (e.g. "open whatsapp", "launch chrome", "open notepad")
+        elif re.search(r'^(?:open|launch|start)\s+([a-zA-Z0-9\s\.\-_]+)$', clean_cmd):
+            m = re.search(r'^(?:open|launch|start)\s+([a-zA-Z0-9\s\.\-_]+)$', clean_cmd)
+            app_name = m.group(1).strip()
+            success = open_application(app_name)
+            response = f"Opening {app_name} on your device." if success else f"Attempted to open {app_name}."
             speak(response)
 
-        # 2. Explicit Web Search intents
-        elif re.search(r'^(?:search\s+(?:on\s+)?youtube\s+(?:for\s+)?|youtube\s+search\s+(?:for\s+)?)(.+)$', cmd):
-            m = re.search(r'^(?:search\s+(?:on\s+)?youtube\s+(?:for\s+)?|youtube\s+search\s+(?:for\s+)?)(.+)$', cmd)
+        # 2. Application Closing (e.g. "close whatsapp", "kill chrome")
+        elif re.search(r'^(?:close|quit|kill|stop)\s+([a-zA-Z0-9\s\.\-_]+)$', clean_cmd) and "window" not in clean_cmd:
+            m = re.search(r'^(?:close|quit|kill|stop)\s+([a-zA-Z0-9\s\.\-_]+)$', clean_cmd)
+            app_name = m.group(1).strip()
+            close_application(app_name)
+            response = f"Closed application {app_name}."
+            speak(response)
+
+        # 3. YouTube Music & Playback
+        elif re.search(r'^(?:play\s+(.+?)\s+on\s+youtube|play\s+(?:song|music|video)\s+(.+)|play\s+(.+))$', clean_cmd):
+            m = re.search(r'^(?:play\s+(.+?)\s+on\s+youtube|play\s+(?:song|music|video)\s+(.+)|play\s+(.+))$', clean_cmd)
+            query = (m.group(1) or m.group(2) or m.group(3)).strip()
+            if query and query not in ["music", "song", "pause", "resume"]:
+                search_youtube(query, play_first=True)
+                response = f"Playing '{query}' on YouTube."
+                speak(response)
+
+        # 4. Explicit Web Searches (Google, YouTube, Amazon)
+        elif re.search(r'^(?:search\s+(?:on\s+)?youtube\s+(?:for\s+)?|youtube\s+search\s+(?:for\s+)?|youtube\s+)(.+)$', clean_cmd):
+            m = re.search(r'^(?:search\s+(?:on\s+)?youtube\s+(?:for\s+)?|youtube\s+search\s+(?:for\s+)?|youtube\s+)(.+)$', clean_cmd)
             query = m.group(1).strip()
             search_youtube(query)
             response = f"Searched YouTube for: {query}"
             speak(response)
 
-        elif re.search(r'^(?:search\s+(?:on\s+)?google\s+(?:for\s+)?|google\s+search\s+(?:for\s+)?)(.+)$', cmd):
-            m = re.search(r'^(?:search\s+(?:on\s+)?google\s+(?:for\s+)?|google\s+search\s+(?:for\s+)?)(.+)$', cmd)
+        elif re.search(r'^(?:search\s+(?:on\s+)?google\s+(?:for\s+)?|google\s+search\s+(?:for\s+)?|google\s+)(.+)$', clean_cmd):
+            m = re.search(r'^(?:search\s+(?:on\s+)?google\s+(?:for\s+)?|google\s+search\s+(?:for\s+)?|google\s+)(.+)$', clean_cmd)
             query = m.group(1).strip()
             search_google(query)
             response = f"Searched Google for: {query}"
             speak(response)
 
-        elif re.search(r'^(?:search\s+(?:on\s+)?amazon\s+(?:for\s+)?|amazon\s+search\s+(?:for\s+)?)(.+)$', cmd):
-            m = re.search(r'^(?:search\s+(?:on\s+)?amazon\s+(?:for\s+)?|amazon\s+search\s+(?:for\s+)?)(.+)$', cmd)
-            query = m.group(1).strip()
+        elif re.search(r'^(?:search\s+(?:on\s+)?amazon\s+(?:for\s+)?|amazon\s+search\s+(?:for\s+)?|amazon\s+|buy\s+(.+?)\s+on\s+amazon)(.+)?$', clean_cmd):
+            m = re.search(r'^(?:search\s+(?:on\s+)?amazon\s+(?:for\s+)?|amazon\s+search\s+(?:for\s+)?|amazon\s+|buy\s+(.+?)\s+on\s+amazon)(.+)?$', clean_cmd)
+            query = (m.group(1) or m.group(2) or "").strip()
             search_amazon(query)
-            response = f"Searched Amazon for: {query}"
+            response = f"Searching Amazon for: {query}"
             speak(response)
 
-        # 3. Content Drafting intent
-        elif re.search(r'^(?:draft|write|compose|generate)\s+(?:an?\s+)?(?:email|letter|application|document|content)\s+(?:about|for|on)\s+(.+)$', cmd):
-            m = re.search(r'^(?:draft|write|compose|generate)\s+(?:an?\s+)?(?:email|letter|application|document|content)\s+(?:about|for|on)\s+(.+)$', cmd)
-            topic = m.group(1).strip()
-            output_label.config(text=f"Generating content for: {topic}")
-            response = generate_content(topic, auto_open=True)
-            speak("Content generated and opened in Notepad.")
+        # 5. Content Drafting (Emails, Letters, Applications, Documents)
+        elif re.search(r'^(?:draft|write|compose|generate)\s+(?:an?\s+)?(?:email|letter|application|document|content)\s+(?:about|for|on)\s+(.+)$', clean_cmd) or clean_cmd.startswith("content ") or clean_cmd.startswith("email "):
+            topic = re.sub(r'^(?:draft|write|compose|generate)\s+(?:an?\s+)?(?:email|letter|application|document|content)\s+(?:about|for|on)\s+|^(?:content|email)\s+', '', clean_cmd).strip()
+            if topic:
+                output_label.config(text=f"Generating content for: {topic}")
+                response = generate_content(topic, auto_open=True)
+                speak("Content generated and opened in Notepad.")
 
-        # 4. Reminders
-        elif re.search(r'^(?:remind\s+me|set\s+(?:a\s+)?reminder)\b', cmd):
-            success, msg = reminder(user_text)
+        # 6. Reminders
+        elif re.search(r'^(?:remind\s+me|set\s+(?:a\s+)?reminder)\b', clean_cmd):
+            success, msg = reminder(clean_cmd)
             if success:
                 response = msg
 
-        # 5. To-Do & Calendar commands
+        # 7. To-Do & Calendar commands
         if not response:
-            todo_res = handle_todo_command(cmd)
+            todo_res = handle_todo_command(clean_cmd)
             if todo_res:
                 response = todo_res
 
-        # 6. Application management
-        if not response and re.search(r'^(?:open|launch)\s+([a-zA-Z0-9\s]+)$', cmd):
-            m = re.search(r'^(?:open|launch)\s+([a-zA-Z0-9\s]+)$', cmd)
-            app_name = m.group(1).strip()
-            open_application(app_name)
-            response = f"Opening {app_name}"
+        # 8. OS Media / Keyboard macros
+        if not response and re.search(r'^(?:(?:increase|decrease|raise|lower|turn\s+up|turn\s+down|mute|unmute)\s+(?:volume|sound|audio)|mute|unmute|pause|resume|next\s+track|next\s+song|previous\s+track|previous\s+song|take\s+a?\s*screenshot|screenshot|find|close\s+window)$', clean_cmd):
+            handle_keyboard_action(clean_cmd)
+            response = f"Executed system action: {clean_cmd}"
+
+        # 9. Time & Date Telemetry
+        elif not response and re.search(r'^(?:what\s+time\s+is\s+it|what\s+is\s+the\s+time|current\s+time|time)$', clean_cmd):
+            import datetime
+            now = datetime.datetime.now()
+            response = f"The current time is {now.strftime('%I:%M:%S %p')} on {now.strftime('%A, %B %d, %Y')}."
             speak(response)
 
-        elif not response and re.search(r'^(?:close|quit|kill)\s+([a-zA-Z0-9\s]+)$', cmd):
-            m = re.search(r'^(?:close|quit|kill)\s+([a-zA-Z0-9\s]+)$', cmd)
-            app_name = m.group(1).strip()
-            close_application(app_name)
-            response = f"Closed application {app_name}"
+        # 10. Direct Weather Query
+        elif not response and re.search(r'^(?:weather\s+in\s+([a-zA-Z\s]+)|what\s+is\s+the\s+weather|weather)$', clean_cmd):
+            from backend.weather_service import get_weather_by_city
+            m = re.search(r'^(?:weather\s+in\s+([a-zA-Z\s]+)|what\s+is\s+the\s+weather|weather)$', clean_cmd)
+            city = m.group(1).strip() if m and m.group(1) else ""
+            if city:
+                response = get_weather_by_city(city)
+            else:
+                response = f"Current weather: {weather_data}"
             speak(response)
 
-        # 7. Exit Command
-        elif not response and re.search(r'^(?:goodbye|bye|sleep|exit|quit)$', cmd):
-            speak("Goodbye!")
+        # 11. Exit Command
+        elif not response and re.search(r'^(?:goodbye|bye|sleep|exit|quit|that\'s\s+it)$', clean_cmd):
+            speak("Goodbye, Sir!")
             root.destroy()
             sys.exit()
 
-        # 8. OS Media / Keyboard macros
-        elif not response and re.search(r'^(?:(?:increase|decrease|mute|unmute)\s+volume|mute|unmute|pause|resume|next\s+track|previous\s+track|take\s+a?\s*screenshot|screenshot)$', cmd):
-            handle_keyboard_action(cmd)
-            response = f"Executed system command: {cmd}"
-
-        # 9. All other queries -> Full Google Gemini conversational answer!
+        # 12. All other queries -> Full Google Gemini conversational answer!
         if not response:
             output_label.config(text="NOVA: Thinking...")
             response = ai_chat(user_text)
