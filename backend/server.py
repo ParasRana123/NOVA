@@ -28,7 +28,8 @@ from backend.os_service import (
     search_youtube,
     search_google,
     search_amazon,
-    get_supported_commands_guide
+    get_supported_commands_guide,
+    get_app_web_url
 )
 
 app = Flask(__name__)
@@ -128,6 +129,7 @@ def process_chat():
     clean_cmd = re.sub(r'^(?:hey\s+nova,?\s*|nova,?\s*|innova,?\s*|please\s+|can\s+you\s+)', '', cmd).strip()
     command_type = "general_chat"
     response_text = ""
+    action = None
 
     try:
         # 0. Help / Supported Commands
@@ -140,8 +142,10 @@ def process_chat():
             m = re.search(r'^(?:open|launch|start)\s+([a-zA-Z0-9\s\.\-_]+)$', clean_cmd)
             app_name = m.group(1).strip()
             command_type = "app_management"
+            web_url = get_app_web_url(app_name)
+            action = {"type": "open_url", "url": web_url, "app": app_name}
             success = open_application(app_name)
-            response_text = f"Opening {app_name} on your device." if success else f"Attempted to open {app_name}."
+            response_text = f"Opening {app_name} on your device." if success else f"Opening {app_name}."
 
         # 2. Application Closing (e.g. "close whatsapp", "kill chrome")
         elif re.search(r'^(?:close|quit|kill|stop)\s+([a-zA-Z0-9\s\.\-_]+)$', clean_cmd) and "window" not in clean_cmd:
@@ -157,6 +161,7 @@ def process_chat():
             query = (m.group(1) or m.group(2) or m.group(3)).strip()
             if query and query not in ["music", "song", "pause", "resume"]:
                 command_type = "multimedia"
+                action = {"type": "open_url", "url": f"https://www.youtube.com/results?search_query={query}"}
                 search_youtube(query, play_first=True)
                 response_text = f"Playing '{query}' on YouTube."
 
@@ -165,6 +170,7 @@ def process_chat():
             m = re.search(r'^(?:search\s+(?:on\s+)?youtube\s+(?:for\s+)?|youtube\s+search\s+(?:for\s+)?|youtube\s+)(.+)$', clean_cmd)
             query = m.group(1).strip()
             command_type = "search"
+            action = {"type": "open_url", "url": f"https://www.youtube.com/results?search_query={query}"}
             search_youtube(query)
             response_text = f"Searched YouTube for: {query}"
 
@@ -172,6 +178,7 @@ def process_chat():
             m = re.search(r'^(?:search\s+(?:on\s+)?google\s+(?:for\s+)?|google\s+search\s+(?:for\s+)?|google\s+)(.+)$', clean_cmd)
             query = m.group(1).strip()
             command_type = "search"
+            action = {"type": "open_url", "url": f"https://www.google.com/search?q={query}"}
             search_google(query)
             response_text = f"Searched Google for: {query}"
 
@@ -179,6 +186,7 @@ def process_chat():
             m = re.search(r'^(?:search\s+(?:on\s+)?amazon\s+(?:for\s+)?|amazon\s+search\s+(?:for\s+)?|amazon\s+|buy\s+(.+?)\s+on\s+amazon)(.+)?$', clean_cmd)
             query = (m.group(1) or m.group(2) or "").strip()
             command_type = "search"
+            action = {"type": "open_url", "url": f"https://www.amazon.com/s?k={query}"}
             search_amazon(query)
             response_text = f"Searching Amazon for: {query}"
 
@@ -248,6 +256,7 @@ def process_chat():
             "query": user_text,
             "response": response_text,
             "command_type": command_type,
+            "action": action,
             "status": "success"
         })
 

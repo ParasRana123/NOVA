@@ -57,15 +57,41 @@ function App() {
       setCommandType(result.command_type || 'general_chat');
       setStatusText(result.status === 'success' ? 'Command completed.' : 'Response received.');
 
-      // Browser TTS fallback if server-side TTS is disabled or desktop pyttsx3 is not heard
+      // Execute client-side web/OS action (e.g. open WhatsApp, YouTube, Google, Spotify, etc.)
+      if (result.action && result.action.url) {
+        try {
+          const popup = window.open(result.action.url, '_blank', 'noopener,noreferrer');
+          if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+            console.info('Client-side action URL triggered:', result.action.url);
+          }
+        } catch (actionErr) {
+          console.warn('Action trigger notice:', actionErr);
+        }
+      }
+
+      // Browser Speech Synthesis with guarded lifecycle
       if (speechEnabled && 'speechSynthesis' in window && !result.response.includes('Error')) {
-        setIsSpeaking(true);
-        const utterance = new SpeechSynthesisUtterance(result.response);
-        utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = () => setIsSpeaking(false);
-        // Clean speech synthesis
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(utterance);
+        try {
+          window.speechSynthesis.cancel();
+          const cleanSpeechText = result.response.replace(/[#*`_~>[\]]/g, '').trim();
+          const utterance = new SpeechSynthesisUtterance(cleanSpeechText);
+          utterance.rate = 1.0;
+          utterance.pitch = 1.0;
+
+          utterance.onstart = () => setIsSpeaking(true);
+          utterance.onend = () => setIsSpeaking(false);
+          utterance.onerror = (e) => {
+            if (e.error !== 'interrupted' && e.error !== 'canceled') {
+              console.warn('Speech synthesis notice:', e.error);
+            }
+            setIsSpeaking(false);
+          };
+
+          window.speechSynthesis.speak(utterance);
+        } catch (speechErr) {
+          console.warn('Speech synthesis invocation notice:', speechErr);
+          setIsSpeaking(false);
+        }
       }
 
       // Refresh chat log
@@ -79,6 +105,11 @@ function App() {
 
   const handleToggleSpeech = () => {
     setSpeechEnabled((prev) => !prev);
+    if (speechEnabled && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch (_) {}
+    }
   };
 
   return (
@@ -96,7 +127,7 @@ function App() {
         <div className="nav-controls">
           <div className={`server-status-pill ${serverOnline ? 'online' : 'offline'}`}>
             <span className="status-dot"></span>
-            <span>{serverOnline ? 'CORE ONLINE' : 'STANDBY (CHECK SERVER.PY)'}</span>
+            <span>{serverOnline ? 'CORE ONLINE' : 'CONNECTING TO CORE'}</span>
           </div>
 
           <button

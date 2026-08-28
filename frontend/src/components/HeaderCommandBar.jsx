@@ -13,42 +13,60 @@ export default function HeaderCommandBar({
   const [isListening, setIsListening] = useState(false);
   const [copied, setCopied] = useState(false);
   const recognitionRef = useRef(null);
+  const isListeningRef = useRef(false);
 
-  // Initialize Web Speech API for voice listening if available
+  // Initialize Web Speech API for voice listening with robust event handling
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US';
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
 
-      recognition.onstart = () => {
-        setIsListening(true);
-        onListeningStateChange?.(true);
-      };
+        recognition.onstart = () => {
+          isListeningRef.current = true;
+          setIsListening(true);
+          onListeningStateChange?.(true);
+        };
 
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        if (transcript) {
-          setInputVal(transcript);
-          onSendMessage(transcript);
-        }
-      };
+        recognition.onresult = (event) => {
+          const transcript = event.results?.[0]?.[0]?.transcript;
+          if (transcript) {
+            setInputVal(transcript);
+            onSendMessage(transcript);
+          }
+        };
 
-      recognition.onerror = (event) => {
-        console.warn('Speech recognition error:', event.error);
-        setIsListening(false);
-        onListeningStateChange?.(false);
-      };
+        recognition.onerror = (event) => {
+          if (event.error !== 'no-speech' && event.error !== 'aborted') {
+            console.warn('Speech recognition notice:', event.error);
+          }
+          isListeningRef.current = false;
+          setIsListening(false);
+          onListeningStateChange?.(false);
+        };
 
-      recognition.onend = () => {
-        setIsListening(false);
-        onListeningStateChange?.(false);
-      };
+        recognition.onend = () => {
+          isListeningRef.current = false;
+          setIsListening(false);
+          onListeningStateChange?.(false);
+        };
 
-      recognitionRef.current = recognition;
+        recognitionRef.current = recognition;
+      } catch (e) {
+        console.warn('Speech recognition init notice:', e);
+      }
     }
+
+    return () => {
+      if (recognitionRef.current && isListeningRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch (_) {}
+      }
+    };
   }, [onSendMessage, onListeningStateChange]);
 
   const handleSubmit = (e) => {
@@ -66,21 +84,27 @@ export default function HeaderCommandBar({
     }
 
     if (isListening) {
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.stop();
+      } catch (_) {}
     } else {
       try {
         recognitionRef.current.start();
       } catch (err) {
-        console.error('Error starting recognition:', err);
+        if (err.name !== 'InvalidStateError') {
+          console.warn('Speech recognition start notice:', err);
+        }
       }
     }
   };
 
   const handleCopy = () => {
     if (!latestResponse) return;
-    navigator.clipboard.writeText(latestResponse);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      navigator.clipboard.writeText(latestResponse);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (_) {}
   };
 
   return (
@@ -93,7 +117,7 @@ export default function HeaderCommandBar({
             className="cyber-input"
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
-            placeholder="Type a command (e.g. 'search on youtube', 'remind me at 5pm', 'weather in Mumbai', 'open notepad')..."
+            placeholder="Type a command (e.g. 'open whatsapp', 'play interstellar on youtube', 'remind me at 5pm', 'weather in Mumbai')..."
             disabled={isProcessing}
             autoFocus
           />

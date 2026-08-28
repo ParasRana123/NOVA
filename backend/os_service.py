@@ -48,51 +48,127 @@ WINDOWS_APP_PROTOCOLS = {
     "task manager": ["taskmgr.exe"],
 }
 
+# Web URL mappings for browser/cloud production execution
+APP_WEB_URLS = {
+    "whatsapp": "https://web.whatsapp.com",
+    "spotify": "https://open.spotify.com",
+    "youtube": "https://www.youtube.com",
+    "google": "https://www.google.com",
+    "chrome": "https://www.google.com",
+    "edge": "https://www.bing.com",
+    "calculator": "https://www.google.com/search?q=calculator",
+    "calc": "https://www.google.com/search?q=calculator",
+    "notepad": "https://editpad.org",
+    "gmail": "https://mail.google.com",
+    "mail": "https://mail.google.com",
+    "github": "https://github.com",
+    "vs code": "https://vscode.dev",
+    "vscode": "https://vscode.dev",
+    "discord": "https://discord.com/app",
+    "telegram": "https://web.telegram.org",
+    "twitter": "https://x.com",
+    "x": "https://x.com",
+    "instagram": "https://www.instagram.com",
+    "reddit": "https://www.reddit.com",
+    "amazon": "https://www.amazon.com",
+    "netflix": "https://www.netflix.com",
+    "chatgpt": "https://chat.openai.com",
+    "gemini": "https://gemini.google.com",
+    "notion": "https://www.notion.so",
+    "calendar": "https://calendar.google.com",
+    "maps": "https://maps.google.com",
+    "drive": "https://drive.google.com",
+    "settings": "ms-settings:"
+}
+
+def get_app_web_url(app_name: str) -> str:
+    """Get web URL or protocol for an app to trigger client-side opening in web/cloud."""
+    clean = app_name.lower().strip().rstrip(".,!?")
+    if clean in APP_WEB_URLS:
+        return APP_WEB_URLS[clean]
+    for k, v in APP_WEB_URLS.items():
+        if k in clean or clean in k:
+            return v
+    return f"https://www.google.com/search?q={clean}"
+
 def mute():
     if keyboard:
-        keyboard.press_and_release('volume mute')
+        try:
+            keyboard.press_and_release('volume mute')
+        except Exception:
+            pass
 
 def unmute():
     if keyboard:
-        keyboard.press_and_release('volume up')
+        try:
+            keyboard.press_and_release('volume up')
+        except Exception:
+            pass
 
 def volume_up(steps: int = 10):
     if keyboard:
-        for _ in range(steps):
-            keyboard.press_and_release("volume up")
+        try:
+            for _ in range(steps):
+                keyboard.press_and_release("volume up")
+        except Exception:
+            pass
 
 def volume_down(steps: int = 10):
     if keyboard:
-        for _ in range(steps):
-            keyboard.press_and_release("volume down")
+        try:
+            for _ in range(steps):
+                keyboard.press_and_release("volume down")
+        except Exception:
+            pass
 
 def play_pause():
     if keyboard:
-        keyboard.press_and_release("play/pause")
+        try:
+            keyboard.press_and_release("play/pause")
+        except Exception:
+            pass
 
 def next_track():
     if keyboard:
-        keyboard.press_and_release("next track")
+        try:
+            keyboard.press_and_release("next track")
+        except Exception:
+            pass
 
 def previous_track():
     if keyboard:
-        keyboard.press_and_release("previous track")
+        try:
+            keyboard.press_and_release("previous track")
+        except Exception:
+            pass
 
 def take_screenshot():
     if keyboard:
-        keyboard.press_and_release("print screen")
+        try:
+            keyboard.press_and_release("print screen")
+        except Exception:
+            pass
 
 def find_text():
     if keyboard:
-        keyboard.press_and_release("ctrl+f")
+        try:
+            keyboard.press_and_release("ctrl+f")
+        except Exception:
+            pass
 
 def close_active_window():
     if keyboard:
-        keyboard.press_and_release("alt+f4")
+        try:
+            keyboard.press_and_release("alt+f4")
+        except Exception:
+            pass
 
 def type_message(message: str):
     if keyboard:
-        keyboard.write(message)
+        try:
+            keyboard.write(message)
+        except Exception:
+            pass
 
 def handle_keyboard_action(command: str) -> bool:
     """Respond to keyboard action commands."""
