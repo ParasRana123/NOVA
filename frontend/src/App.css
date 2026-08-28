@@ -579,6 +579,42 @@
   margin-bottom: 0.4rem;
 }
 
+.action-button-container {
+  margin-top: 0.85rem;
+}
+
+.action-launch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: linear-gradient(135deg, rgba(0, 230, 118, 0.15), rgba(0, 123, 255, 0.2));
+  color: var(--neon-green);
+  border: 1px solid var(--neon-green);
+  padding: 0.6rem 1.15rem;
+  border-radius: 20px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(0, 230, 118, 0.25);
+  transition: all 0.25s ease;
+}
+
+.action-launch-chip:hover {
+  background: var(--neon-green);
+  color: #000000;
+  box-shadow: var(--neon-green-glow);
+  transform: translateY(-2px);
+}
+
+.action-arrow {
+  font-size: 1.1rem;
+  transition: transform 0.2s ease;
+}
+
+.action-launch-chip:hover .action-arrow {
+  transform: translate(2px, -2px);
+}
+
 .placeholder-text {
   color: #555555;
   font-style: italic;

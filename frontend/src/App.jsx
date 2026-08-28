@@ -8,15 +8,13 @@ import ChatHistoryPanel from './components/ChatHistoryPanel';
 import VisionAnalyzer from './components/VisionAnalyzer';
 import { fetchHealth, fetchWeather, fetchChatHistory, sendChatMessage, speakText } from './services/api';
 
-// Function to trigger native OS application schemes (e.g. whatsapp://, spotify://, calc:, vscode://)
+// Function to trigger native OS application schemes or web action URLs
 function launchNativeAppOrWeb(action) {
   if (!action) return;
   const { protocol, url, app } = action;
 
   if (protocol) {
     console.log(`[NOVA Client] Launching native application protocol: ${protocol} (${app})`);
-    
-    // Method 1: Use hidden iframe to launch OS app without page navigation
     try {
       const iframe = document.createElement('iframe');
       iframe.style.position = 'fixed';
@@ -41,11 +39,28 @@ function launchNativeAppOrWeb(action) {
       }
     }
   } else if (url) {
-    console.log(`[NOVA Client] Opening action URL: ${url}`);
+    console.log(`[NOVA Client] Launching action URL: ${url}`);
+    // Strategy 1: Synthetic link click (handles popup blockers in most browsers)
     try {
-      window.open(url, '_blank', 'noopener,noreferrer');
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        try {
+          document.body.removeChild(link);
+        } catch (_) {}
+      }, 500);
+    } catch (_) {}
+
+    // Strategy 2: window.open backup
+    try {
+      const popup = window.open(url, '_blank', 'noopener,noreferrer');
+      if (popup) popup.focus();
     } catch (popupErr) {
-      console.warn('Action URL trigger notice:', popupErr);
+      console.warn('Popup blocked by browser:', popupErr);
     }
   }
 }
@@ -59,6 +74,7 @@ function App() {
   const [latestQuery, setLatestQuery] = useState('');
   const [latestResponse, setLatestResponse] = useState('');
   const [commandType, setCommandType] = useState('');
+  const [latestAction, setLatestAction] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -90,6 +106,7 @@ function App() {
     setLatestQuery(queryText);
     setIsProcessing(true);
     setStatusText(`Processing: "${queryText}"`);
+    setLatestAction(null);
 
     const result = await sendChatMessage(queryText, speechEnabled);
     setIsProcessing(false);
@@ -97,9 +114,10 @@ function App() {
     if (result.response) {
       setLatestResponse(result.response);
       setCommandType(result.command_type || 'general_chat');
+      setLatestAction(result.action || null);
       setStatusText(result.status === 'success' ? 'Command completed.' : 'Response received.');
 
-      // Launch native OS desktop app or web URL
+      // Launch native OS desktop app or web URL (e.g. YouTube, Google, WhatsApp)
       if (result.action) {
         launchNativeAppOrWeb(result.action);
       }
@@ -218,6 +236,7 @@ function App() {
             latestQuery={latestQuery}
             latestResponse={latestResponse}
             commandType={commandType}
+            latestAction={latestAction}
             isProcessing={isProcessing}
           />
         </section>

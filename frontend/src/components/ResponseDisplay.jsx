@@ -1,7 +1,38 @@
 import React from 'react';
 import FormattedMarkdown from './FormattedMarkdown';
 
-export default function ResponseDisplay({ latestQuery, latestResponse, commandType, isProcessing }) {
+export default function ResponseDisplay({
+  latestQuery,
+  latestResponse,
+  commandType,
+  latestAction,
+  isProcessing
+}) {
+  const handleActionClick = (e) => {
+    e?.preventDefault();
+    if (!latestAction) return;
+
+    if (latestAction.protocol) {
+      try {
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.top = '-9999px';
+        iframe.style.left = '-9999px';
+        iframe.style.width = '1px';
+        iframe.style.height = '1px';
+        iframe.src = latestAction.protocol;
+        document.body.appendChild(iframe);
+        setTimeout(() => {
+          try { document.body.removeChild(iframe); } catch (_) {}
+        }, 3000);
+      } catch (_) {
+        window.location.href = latestAction.protocol;
+      }
+    } else if (latestAction.url) {
+      window.open(latestAction.url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   return (
     <div className="response-display-panel">
       <div className="panel-header">
@@ -32,7 +63,37 @@ export default function ResponseDisplay({ latestQuery, latestResponse, commandTy
           ) : (
             <div className="response-text-content">
               {latestResponse ? (
-                <FormattedMarkdown content={latestResponse} />
+                <>
+                  <FormattedMarkdown content={latestResponse} />
+
+                  {/* Interactive Action Chip for direct 1-click execution */}
+                  {latestAction && (latestAction.url || latestAction.protocol) && (
+                    <div className="action-button-container">
+                      <button
+                        type="button"
+                        className="action-launch-chip"
+                        onClick={handleActionClick}
+                      >
+                        <span className="action-icon">
+                          {latestAction.url?.includes('youtube')
+                            ? '▶️'
+                            : latestAction.url?.includes('google')
+                            ? '🔍'
+                            : latestAction.url?.includes('amazon')
+                            ? '🛒'
+                            : '⚡'}
+                        </span>
+                        <span>
+                          {latestAction.label ||
+                            (latestAction.protocol
+                              ? `Open ${latestAction.app || 'App'}`
+                              : `Open Link`)}
+                        </span>
+                        <span className="action-arrow">↗</span>
+                      </button>
+                    </div>
+                  )}
+                </>
               ) : (
                 <p className="placeholder-text">
                   Welcome to NOVA. Type a command or press the microphone to interact.

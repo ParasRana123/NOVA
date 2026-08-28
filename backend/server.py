@@ -160,7 +160,9 @@ def process_chat():
             query = (m.group(1) or m.group(2) or m.group(3)).strip()
             if query and query not in ["music", "song", "pause", "resume"]:
                 command_type = "multimedia"
-                action = {"type": "open_url", "url": f"https://www.youtube.com/results?search_query={query}"}
+                import urllib.parse
+                encoded_q = urllib.parse.quote_plus(query)
+                action = {"type": "open_url", "url": f"https://www.youtube.com/results?search_query={encoded_q}", "label": f"Play '{query}' on YouTube"}
                 search_youtube(query, play_first=True)
                 response_text = f"Playing '{query}' on YouTube."
 
@@ -169,7 +171,9 @@ def process_chat():
             m = re.search(r'^(?:search\s+(?:on\s+)?youtube\s+(?:for\s+)?|youtube\s+search\s+(?:for\s+)?|youtube\s+)(.+)$', clean_cmd)
             query = m.group(1).strip()
             command_type = "search"
-            action = {"type": "open_url", "url": f"https://www.youtube.com/results?search_query={query}"}
+            import urllib.parse
+            encoded_q = urllib.parse.quote_plus(query)
+            action = {"type": "open_url", "url": f"https://www.youtube.com/results?search_query={encoded_q}", "label": f"Search YouTube: {query}"}
             search_youtube(query)
             response_text = f"Searched YouTube for: {query}"
 
@@ -177,7 +181,9 @@ def process_chat():
             m = re.search(r'^(?:search\s+(?:on\s+)?google\s+(?:for\s+)?|google\s+search\s+(?:for\s+)?|google\s+)(.+)$', clean_cmd)
             query = m.group(1).strip()
             command_type = "search"
-            action = {"type": "open_url", "url": f"https://www.google.com/search?q={query}"}
+            import urllib.parse
+            encoded_q = urllib.parse.quote_plus(query)
+            action = {"type": "open_url", "url": f"https://www.google.com/search?q={encoded_q}", "label": f"Google Search: {query}"}
             search_google(query)
             response_text = f"Searched Google for: {query}"
 
@@ -185,7 +191,9 @@ def process_chat():
             m = re.search(r'^(?:search\s+(?:on\s+)?amazon\s+(?:for\s+)?|amazon\s+search\s+(?:for\s+)?|amazon\s+|buy\s+(.+?)\s+on\s+amazon)(.+)?$', clean_cmd)
             query = (m.group(1) or m.group(2) or "").strip()
             command_type = "search"
-            action = {"type": "open_url", "url": f"https://www.amazon.com/s?k={query}"}
+            import urllib.parse
+            encoded_q = urllib.parse.quote_plus(query)
+            action = {"type": "open_url", "url": f"https://www.amazon.com/s?k={encoded_q}", "label": f"Amazon Search: {query}"}
             search_amazon(query)
             response_text = f"Searching Amazon for: {query}"
 
